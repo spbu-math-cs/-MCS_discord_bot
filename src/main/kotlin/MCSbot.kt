@@ -2,20 +2,27 @@ import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageChannel
+import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
+import net.dv8tion.jda.api.interactions.components.ActionRow
+import net.dv8tion.jda.api.interactions.components.Modal
 import net.dv8tion.jda.api.interactions.components.buttons.Button
+import net.dv8tion.jda.api.interactions.components.text.TextInput
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.ChunkingFilter
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag
+import okhttp3.internal.wait
 
 
 fun main(args: Array<String>) {
@@ -89,25 +96,40 @@ class NewMemberJoin : ListenerAdapter() {
         }
     }
 
-    override fun onGuildReady(event: GuildReadyEvent) {
-        val commandData: MutableList<CommandData> = ArrayList()
-        commandData.add(Commands.slash("welcome", "Get welcomed by the bot"))
-        commandData.add(Commands.slash("roles", "Display all roles on the server"))
-        event.guild.updateCommands().addCommands(commandData).queue()
-    }
+
 }
 
 class HelloBot: ListenerAdapter() {
 
+    private val roles: MutableList<Role> = mutableListOf()
+
     override fun onGuildReady(event: GuildReadyEvent) {
-        event.guild.getCategoriesByName("РЕГИСТРАЦИЯ", true)
-            .first().textChannels.find { it.name == "регистрация" }?.sendMessage("Nice to meet you!")?.setActionRow(sendButtons())?.queue()
+
+        roles.add( event.guild.getRolesByName("СП 1", true).first())
+        roles.add( event.guild.getRolesByName("СП 2", true).first())
+        roles.add( event.guild.getRolesByName("СП 3", true).first())
+        roles.add( event.guild.getRolesByName("СП 4", true).first())
+
+        val channel = event.guild.getCategoriesByName("РЕГИСТРАЦИЯ", true)
+            .first().textChannels.find { it.name == "регистрация" }
+
+        //Очистка чата, нужно придумать рабочую
+       /* var currentId: String? = channel?.latestMessageId;
+        while (currentId != null) {
+            currentId = channel?.latestMessageId
+            channel?.deleteMessageById(currentId!!)
+        }*/
+        val commandData: MutableList<CommandData> = ArrayList()
+        commandData.add(Commands.slash("welcome", "Get welcomed by the bot"))
+        commandData.add(Commands.slash("roles", "Display all roles on the server"))
+        event.guild.updateCommands().addCommands(commandData).queue()
+        channel?.sendMessage("Nice to meet you!")?.setActionRow(sendButtons())?.queue()
     }
 
     private fun sendButtons() : List<Button>{
         val buttons: MutableList<Button> = mutableListOf()
         buttons.add(Button.primary("hello","Click me :)"))
-        buttons.add(Button.primary("fake","Do not click me!!!"))
+        buttons.add(Button.primary("registration","Setting profile"))
         return buttons
     }
 
@@ -131,8 +153,57 @@ class HelloBot: ListenerAdapter() {
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
         when (event.componentId) {
             "hello" -> event.reply("Hello :)").queue() // send a message in the channel
-            "fake" -> event.editMessage("That button didn't say click me").queue() // update the message
+            "registration" -> {
+                val subject = TextInput.create("subject", "Name", TextInputStyle.SHORT)
+                    .setPlaceholder("Name")
+                    .setRequiredRange(0,50)
+                    .setPlaceholder("Иван")
+                    .build()
+
+                val body = TextInput.create("body", "Surname", TextInputStyle.SHORT)
+                    .setPlaceholder("Surname")
+                    .setRequiredRange(0,50)
+                    .setPlaceholder("Иванов")
+                    .build()
+
+                val course = TextInput.create("course", "Course", TextInputStyle.SHORT)
+                    .setPlaceholder("Course")
+                    .setRequiredRange(1,1)
+                    .setPlaceholder("1")
+                    .build()
+
+                val modal = Modal.create("modmail", "Setting profile")
+                    .addActionRows(ActionRow.of(subject), ActionRow.of(body),  ActionRow.of(course))
+                    .build()
+
+                event.replyModal(modal).queue()
+            }
         }
     }
-}
+        override fun onModalInteraction(event: ModalInteractionEvent) {
+            if (event.modalId == "modmail") {
+                val surname = event.getValue("subject")?.asString ?: "Error"
+                val name = event.getValue("body")?.asString ?: "Error"
+                val course = event.getValue("course")?.asString?.toInt() ?: 0
+                event.member?.modifyNickname("$surname $name".trim())?.queue()
+                val role: Role? = when (course) {
+                    1 -> event.guild?.getRolesByName("СП 1", true)?.first()
+                    2 -> event.guild?.getRolesByName("СП 2", true)?.first()
+                    3 -> event.guild?.getRolesByName("СП 3", true)?.first()
+                    4 -> event.guild?.getRolesByName("СП 4", true)?.first()
+                    else -> null
+                }
+                if (role != null) {
+                    val member = event.member!!
+                    event.guild?.removeRoleFromMember(member, roles[0])?.complete()
+                    event.guild?.removeRoleFromMember(member, roles[1])?.complete()
+                    event.guild?.removeRoleFromMember(member, roles[2])?.complete()
+                    event.guild?.removeRoleFromMember(member, roles[3])?.complete()
+                    event.guild?.addRoleToMember(event.member!!, role)?.complete()
+                }
+                event.reply("Hi, $surname $name!").setEphemeral(true).queue()
+            }
+        }
+    }
+
 

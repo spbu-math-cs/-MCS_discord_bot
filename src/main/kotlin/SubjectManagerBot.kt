@@ -1,7 +1,6 @@
 import Utility.clearChannel
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -11,7 +10,6 @@ import net.dv8tion.jda.api.interactions.components.Modal
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
-import Utility.Roles
 import Utility.BasicChannels
 import Utility.BasicCategories
 import Utility.channelGetter
@@ -26,29 +24,49 @@ class SubjectManagerBot : ListenerAdapter() {
         buttons.add(Button.primary("join", "Присоединиться"))
         return buttons
     }
-
     private fun channelListSetup(guild: Guild){
-        val channelList: StringBuilder
+
+        val channel = channelGetter(guild,
+            BasicCategories.COURSE_MANAGEMENT.category,
+            BasicChannels.COURSE_LIST.channel)
+        clearChannel(channel)
+
+        val messages = mutableListOf<String>()
+        for (i in 0..3)
+        {
+            val channelList: StringBuilder =  StringBuilder("")
+            channelList.append(courses[i] + ":\n")
+            val category = guild.getCategoriesByName(courses[i],true).first() ?: return// Если этой категории нет, дело труба...
+            category.textChannels.forEach { channel->
+                channelList.append("\t\t${channel.asMention}\n")
+            }
+            messages.add(channelList.toString())
+        }
+
+        messages.forEach { channel.sendMessage(it).complete() }
     }
 
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
-        val channel = channelGetter(guild,
+        val channelInteraction = channelGetter(guild,
             BasicCategories.COURSE_MANAGEMENT.category,
             BasicChannels.COURSE_INTERACTION.channel
         )
-        clearChannel(channel)
 
-        channel.sendMessage("Этот чат предназначен для создания каналов для курсов " +
+        clearChannel(channelInteraction)
+
+        channelListSetup(guild)
+
+        channelInteraction.sendMessage("Этот чат предназначен для создания каналов для курсов " +
                 "и присоединения к уже существующим курсам.").queue()
-        channel.sendMessage("Ознакомиться с полным списком курсов " +
+        channelInteraction.sendMessage("Ознакомиться с полным списком курсов " +
                 "Вы можете в соседнем канале: " +
-                channelGetter(guild, 
-                    BasicCategories.COURSE_MANAGEMENT.category, 
+                channelGetter(guild,
+                    BasicCategories.COURSE_MANAGEMENT.category,
                     BasicChannels.COURSE_LIST.channel
                 ).asMention
         ).queue()
-        channel.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
+        channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
@@ -108,10 +126,12 @@ class SubjectManagerBot : ListenerAdapter() {
                     member.idLong, mutableListOf(
                         Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
                     ), null
-                ).queue()
+                ).complete()
+
+                channelListSetup(guild)
 
                 event.reply("Channel $courseName was created successfully!")
-                    .setEphemeral(true).queue()
+                    .setEphemeral(true).complete()
             }
 
             "course join" -> {

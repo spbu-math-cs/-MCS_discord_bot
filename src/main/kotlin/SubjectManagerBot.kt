@@ -24,29 +24,33 @@ class SubjectManagerBot : ListenerAdapter() {
         buttons.add(Button.primary("join", "Присоединиться"))
         return buttons
     }
-    private fun channelListSetup(guild: Guild){
 
-        val channel = channelGetter(guild,
+    private fun channelListSetup(guild: Guild) {
+
+        val channel = channelGetter(
+            guild,
             BasicCategories.COURSE_MANAGEMENT.category,
-            BasicChannels.COURSE_LIST.channel)
+            BasicChannels.COURSE_LIST.channel
+        )
         clearChannel(channel)
 
         val messages = mutableListOf<String>()
-        for (i in 0..3)
-        {
-            val channelList: StringBuilder =  StringBuilder("")
+        for (i in 0..3) {
+            val channelList: StringBuilder = StringBuilder("")
             channelList.append(courses[i] + ":\n")
-            val category = guild.getCategoriesByName(courses[i],true).first() ?: return// Если этой категории нет, дело труба...
+            val category =
+                guild.getCategoriesByName(courses[i], true).first() ?: return// Если этой категории нет, дело труба...
             category.textChannels.forEach { channelList.append("\t\t${it.asMention}\n") }
             messages.add(channelList.toString())
         }
 
-        messages.forEach { channel.sendMessage(it).complete() }
+        messages.forEach { channel.sendMessage(it).queue() }
     }
 
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
-        val channelInteraction = channelGetter(guild,
+        val channelInteraction = channelGetter(
+            guild,
             BasicCategories.COURSE_MANAGEMENT.category,
             BasicChannels.COURSE_INTERACTION.channel
         )
@@ -55,14 +59,18 @@ class SubjectManagerBot : ListenerAdapter() {
 
         channelListSetup(guild)
 
-        channelInteraction.sendMessage("Этот чат предназначен для создания каналов для курсов " +
-                "и присоединения к уже существующим курсам.").queue()
-        channelInteraction.sendMessage("Ознакомиться с полным списком курсов " +
-                "Вы можете в соседнем канале: " +
-                channelGetter(guild,
-                    BasicCategories.COURSE_MANAGEMENT.category,
-                    BasicChannels.COURSE_LIST.channel
-                ).asMention
+        channelInteraction.sendMessage(
+            "Этот чат предназначен для создания каналов для курсов " +
+                    "и присоединения к уже существующим курсам."
+        ).queue()
+        channelInteraction.sendMessage(
+            "Ознакомиться с полным списком курсов " +
+                    "Вы можете в соседнем канале: " +
+                    channelGetter(
+                        guild,
+                        BasicCategories.COURSE_MANAGEMENT.category,
+                        BasicChannels.COURSE_LIST.channel
+                    ).asMention
         ).queue()
         channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
     }
@@ -102,8 +110,9 @@ class SubjectManagerBot : ListenerAdapter() {
         val member = event.member ?: return
         val guild = event.guild ?: return
 
-        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull()//логгер + отправка пользователю сообщение об ошибке ввода
+        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
         val subjectName = event.getValue("subjectName")?.asString ?: "Error" //логгер
+
         if (courseNumber == null || courseNumber !in 1..4) {
             event.reply(
                 "Hi, you have entered wrong course number.\n " +
@@ -114,35 +123,40 @@ class SubjectManagerBot : ListenerAdapter() {
             return
         }
 
-        val category = guild.getCategoriesByName(courses[courseNumber-1], true).first()
-
         when (event.modalId) {
             "course create" -> {
-                category.createTextChannel(subjectName).complete()
+
+                val category = guild.getCategoriesByName(courses[courseNumber - 1], true).first()
+                category.createTextChannel(subjectName).addMemberPermissionOverride(
+                    member.idLong, mutableListOf(
+                        Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
+                    ), null
+                ).queue()
+
+                channelListSetup(guild)
+
+               //event.deferReply(true).complete()
+               event.reply("Channel $subjectName was created successfully!")
+                    .setEphemeral(true).complete()
             }
 
             "course join" -> {
+
+                val category = guild.getCategoriesByName(courses[courseNumber - 1], true).first()
                 val channel = category.textChannels.find { it.name == subjectName }
                 if (channel == null) {
                     event.reply("Problems with course name.").setEphemeral(true).queue()
                     return
                 }
-                channel
+                channel.manager.putMemberPermissionOverride(
+                    member.idLong, mutableListOf(
+                        Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
+                    ), null
+                ).queue()
+
+                event.reply("Channel $subjectName was updated successfully!\n Check ${courses[courseNumber - 1]} category.")
+                    .setEphemeral(true).complete()
             }
-            else -> null
-        }?.manager?.putMemberPermissionOverride(
-            member.idLong, mutableListOf(
-                Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
-            ), null
-        ) ?: run {
-            event.reply("Программист дурак, напишите, пожалуйста, администрации.")
-                .setEphemeral(true).queue()
-            return@onModalInteraction
-        } //logger
-
-        channelListSetup(guild)
-
-        event.reply("Channel $subjectName was created successfully!")
-            .setEphemeral(true).queue()
+        }
     }
 }

@@ -104,9 +104,9 @@ class RegistrationBot : ListenerAdapter() {
             "student profile" -> {
                 val surname = event.getValue("surname")?.asString ?: "Error" //логгер
                 val name = event.getValue("name")?.asString ?: "Error" //логгер
-                val course = event.getValue("course")?.asString?.toIntOrNull() //логгер
-
-                if (course == null || course !in 1..4) {
+                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull() //логгер
+                println(courseNumber)
+                if (courseNumber == null || courseNumber !in 1..4) {
                     event.reply(
                         "Hi, you have entered wrong course number.\n " +
                                 "It should be a number in range 1..4.\n" +
@@ -116,7 +116,7 @@ class RegistrationBot : ListenerAdapter() {
                     return
                 }
 
-                val chosenRole = courseRoles[course - 1]
+                val chosenRole = courseRoles[courseNumber - 1]
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }

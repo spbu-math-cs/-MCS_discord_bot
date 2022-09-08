@@ -25,7 +25,7 @@ fun main(args: Array<String>) {
         .enableCache(CacheFlag.ONLINE_STATUS)*/.build()
 
     jda.presence.setStatus(OnlineStatus.ONLINE)
-    jda.addEventListener(NewMemberJoin(), IsBotAlive(), /*CommandManager(),*/ RegistrationBot())
+    jda.addEventListener(NewMemberJoin(), IsBotAlive(), /*CommandManager(),*/ RegistrationBot(), SubjectChannelManager())
 }
 
 class IsBotAlive : ListenerAdapter() {
@@ -242,7 +242,7 @@ class RegistrationBot : ListenerAdapter() {
     }
 }
 
-class SubjectCreation: ListenerAdapter() {
+class SubjectChannelManager: ListenerAdapter() {
 
     private fun sendCreateAndJoin(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
@@ -302,7 +302,7 @@ class SubjectCreation: ListenerAdapter() {
         val guild = event.guild ?: return
 
         when (event.modalId){
-            "create" -> {
+            "course create" -> {
                 val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
                 val courseName = event.getValue("courseName")?.asString ?: "Error" //логгер
 
@@ -322,15 +322,38 @@ class SubjectCreation: ListenerAdapter() {
                     .setEphemeral(true).queue()
             }
 
-           /* "professor profile" -> {
-                val surname = event.getValue("surname")?.asString ?: "Error"
-                val name = event.getValue("name")?.asString ?: "Error"
-                member.modifyNickname("$surname $name".trim()).queue()
+            "course join" -> {
+                val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
+                val courseName = event.getValue("courseName")?.asString ?: "Error" //логгер
 
-                guild.addRoleToMember(member,professorRole).queue()
-                guild.removeRoleFromMember(member, registrationRole).queue()
-                event.reply("Hi, $surname $name!\n You have been successfully registered!").setEphemeral(true).queue()
-            }*/
+                val category = guild.getCategoriesByName("СП $courseNumber", true).first()
+                val channel = category.textChannels.find { it.name == courseName }
+                if (channel == null)
+                {
+                    event.reply("Problems with course name.").setEphemeral(true).queue()
+                    return
+                }
+                channel.manager.putMemberPermissionOverride(member.idLong, mutableListOf(
+                    Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL), null).queue()
+
+                event.reply("Channel $courseName was updated successfully!\n Check СП $courseNumber category.")
+                    .setEphemeral(true).queue()
+            }
         }
     }
 }
+
+
+/*
+* Тесты: 2 курса с одинаковым именем
+* подтверждение роли
+* много регистраций одновременно
+* Ручное тестирование
+*
+* Задачи: действия отправлять в queue, а не в comlete
+* Разделение по файлам
+* Логгирование
+* Список актуальных курсов
+* Инструкции по взаимодействию с ботом
+*
+* */

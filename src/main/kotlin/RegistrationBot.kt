@@ -10,6 +10,11 @@ import net.dv8tion.jda.api.interactions.components.Modal
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
+import Utility.Roles
+import Utility.BasicChannels
+import Utility.BasicCategories
+import Utility.channelGetter
+import Utility.courses
 
 class RegistrationBot : ListenerAdapter() {
 
@@ -19,27 +24,29 @@ class RegistrationBot : ListenerAdapter() {
 
     override fun onGuildReady(event: GuildReadyEvent) {
 
-        registrationRole = event.guild.getRolesByName("Регистрация", true).first()
-        professorRole = event.guild.getRolesByName("Преподаватель", true).first()
-        for (i in 1..4)
-            courseRoles.add(event.guild.getRolesByName("СП $i", true).first())
+        val guild = event.guild
 
-        val channel = event.guild.getCategoriesByName("Регистрация", true)
-            .first().textChannels.find { it.name == "регистрация" } ?: return //логгер
+        registrationRole = event.guild.getRolesByName(Roles.REGISTRATION.roleName, true).first()
+        professorRole = event.guild.getRolesByName(Roles.PROFESSOR.roleName, true).first()
+        for (i in 0..3)
+            courseRoles.add(event.guild.getRolesByName(courses[i], true).first())
+
+        val channel = channelGetter(guild,BasicCategories.REGISTRATION.category,BasicChannels.REGISTRATION.channel)
+            ?: return //логгер
 
         clearChannel(channel)
 
         channel.sendMessage("Рады приветствовать вас на официальном сервере программы Современное Программирование!")
-            .complete()
-        channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).queue()
+            .queue()
+        channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).complete()
 
     }
 
     override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
         event.guild.addRoleToMember(
-            event.member, event.guild.getRolesByName("Регистрация", true)
+            event.member, event.guild.getRolesByName(Roles.REGISTRATION.roleName, true)
                 .first()
-        ).complete()
+        ).queue()
     }
 
     private fun sendStudentAndProfessor(): List<Button> {
@@ -117,8 +124,8 @@ class RegistrationBot : ListenerAdapter() {
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }
-                guild.addRoleToMember(member, chosenRole).complete()
-                guild.removeRoleFromMember(member, registrationRole).complete()
+                guild.addRoleToMember(member, chosenRole).queue()
+                guild.removeRoleFromMember(member, registrationRole).queue()
                 event.reply("Hi, $surname $name!\n You have been successfully registered!")
                     .setEphemeral(true).queue()
             }

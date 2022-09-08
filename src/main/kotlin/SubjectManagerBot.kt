@@ -1,5 +1,7 @@
 import Utility.clearChannel
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -9,8 +11,14 @@ import net.dv8tion.jda.api.interactions.components.Modal
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
+import Utility.Roles
+import Utility.BasicChannels
+import Utility.BasicCategories
+import Utility.channelGetter
+import Utility.courses
 
 class SubjectManagerBot : ListenerAdapter() {
+
 
     private fun sendCreateAndJoin(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
@@ -19,15 +27,27 @@ class SubjectManagerBot : ListenerAdapter() {
         return buttons
     }
 
-    override fun onGuildReady(event: GuildReadyEvent) {
-        val channel = event.guild.getCategoriesByName("Управление курсами", true)
-            .first().textChannels.find { it.name == "взаимодействие-с-курсами" } ?: return //логгер
+    private fun channelListSetup(guild: Guild){
+        val channelList: StringBuilder
+    }
 
+    override fun onGuildReady(event: GuildReadyEvent) {
+        val guild = event.guild
+        val channel = channelGetter(guild,
+            BasicCategories.COURSE_MANAGEMENT.category,
+            BasicChannels.COURSE_INTERACTION.channel
+        )
         clearChannel(channel)
 
-        channel.sendMessage("Этот чат предназначен для создания каналов для курсов и присоединения к уже существующим курсам.")
-            .complete()
-        channel.sendMessage("Ознакомиться с полным списком курсов Вы можете в соседнем канале.").complete()
+        channel.sendMessage("Этот чат предназначен для создания каналов для курсов " +
+                "и присоединения к уже существующим курсам.").queue()
+        channel.sendMessage("Ознакомиться с полным списком курсов " +
+                "Вы можете в соседнем канале: " +
+                channelGetter(guild, 
+                    BasicCategories.COURSE_MANAGEMENT.category, 
+                    BasicChannels.COURSE_LIST.channel
+                ).asMention
+        ).queue()
         channel.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
 
 
@@ -85,7 +105,7 @@ class SubjectManagerBot : ListenerAdapter() {
                     return
                 }
 
-                val category = guild.getCategoriesByName("СП $courseNumber", true).first()
+                val category = guild.getCategoriesByName(courses[courseNumber-1], true).first()
                 category.createTextChannel(courseName).addMemberPermissionOverride(
                     member.idLong, mutableListOf(
                         Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
@@ -97,10 +117,10 @@ class SubjectManagerBot : ListenerAdapter() {
             }
 
             "course join" -> {
-                val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
+                val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() ?: return//логгер + отправка пользователю сообщение об ошибке ввода
                 val courseName = event.getValue("courseName")?.asString ?: "Error" //логгер
 
-                val category = guild.getCategoriesByName("СП $courseNumber", true).first()
+                val category = guild.getCategoriesByName(courses[courseNumber-1], true).first()
                 val channel = category.textChannels.find { it.name == courseName }
                 if (channel == null) {
                     event.reply("Problems with course name.").setEphemeral(true).queue()
@@ -112,7 +132,7 @@ class SubjectManagerBot : ListenerAdapter() {
                     ), null
                 ).queue()
 
-                event.reply("Channel $courseName was updated successfully!\n Check СП $courseNumber category.")
+                event.reply("Channel $courseName was updated successfully!\n Check ${courses[courseNumber]} category.")
                     .setEphemeral(true).queue()
             }
         }

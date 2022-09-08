@@ -32,7 +32,6 @@ class RegistrationBot : ListenerAdapter() {
             courseRoles.add(event.guild.getRolesByName(courses[i], true).first())
 
         val channel = channelGetter(guild,BasicCategories.REGISTRATION.category,BasicChannels.REGISTRATION.channel)
-            ?: return //логгер
 
         clearChannel(channel)
 
@@ -60,13 +59,11 @@ class RegistrationBot : ListenerAdapter() {
         val member = event.member ?: return
 
         val name = TextInput.create("name", "Name", TextInputStyle.SHORT)
-            .setPlaceholder("Name")
             .setRequiredRange(1, 50)
             .setPlaceholder("Иван")
             .build()
 
         val surname = TextInput.create("surname", "Surname", TextInputStyle.SHORT)
-            .setPlaceholder("Surname")
             .setRequiredRange(1, 50)
             .setPlaceholder("Иванов")
             .build()
@@ -76,7 +73,6 @@ class RegistrationBot : ListenerAdapter() {
                 if (member.roles.contains(professorRole))
                     return
                 val courseNumber = TextInput.create("courseNumber", "courseNumber", TextInputStyle.SHORT)
-                    .setPlaceholder("courseNumber")
                     .setRequiredRange(1, 1)
                     .setPlaceholder("1")
                     .build()

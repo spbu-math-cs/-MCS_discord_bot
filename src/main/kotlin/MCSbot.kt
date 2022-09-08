@@ -4,6 +4,11 @@ import net.dv8tion.jda.api.requests.GatewayIntent
 
 
 fun main(args: Array<String>) {
+    if (args.isEmpty()) {
+        println("Программист дурачок - забыл про токен.")
+        return
+    }
+
     val jda = JDABuilder.create(
         args[0],
         GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS)
@@ -34,4 +39,7 @@ fun main(args: Array<String>) {
 * Повторная регистрация
 * Дублирование каналов
 *
+*
+* Maybe:
+* любые
 * */

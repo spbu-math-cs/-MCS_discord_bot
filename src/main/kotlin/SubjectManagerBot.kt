@@ -37,9 +37,7 @@ class SubjectManagerBot : ListenerAdapter() {
             val channelList: StringBuilder =  StringBuilder("")
             channelList.append(courses[i] + ":\n")
             val category = guild.getCategoriesByName(courses[i],true).first() ?: return// Если этой категории нет, дело труба...
-            category.textChannels.forEach { channel->
-                channelList.append("\t\t${channel.asMention}\n")
-            }
+            category.textChannels.forEach { channelList.append("\t\t${it.asMention}\n") }
             messages.add(channelList.toString())
         }
 
@@ -72,13 +70,11 @@ class SubjectManagerBot : ListenerAdapter() {
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
 
         val courseNumber = TextInput.create("courseNumber", "Course number", TextInputStyle.SHORT)
-            .setPlaceholder("Course number")
             .setRequiredRange(1, 1)
             .setPlaceholder("1")
             .build()
 
-        val courseName = TextInput.create("courseName", "Course name", TextInputStyle.SHORT)
-            .setPlaceholder("Course name")
+        val subjectName = TextInput.create("subjectName", "Subject name", TextInputStyle.SHORT)
             .setRequiredRange(1, 150)
             .setPlaceholder("Теоретическая информатика (практика)")
             .build()
@@ -86,7 +82,7 @@ class SubjectManagerBot : ListenerAdapter() {
         when (event.componentId) {
             "create" -> {
                 val courseCreation = Modal.create("course create", "Course creation modal")
-                    .addActionRows(ActionRow.of(courseNumber), ActionRow.of(courseName))
+                    .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
                     .build()
 
                 event.replyModal(courseCreation).queue()
@@ -94,7 +90,7 @@ class SubjectManagerBot : ListenerAdapter() {
 // Если введён не тот курс в reply дописать, что названия курсов можно найти там-то, там-то
             "join" -> {
                 val courseJoin = Modal.create("course join", "Course join modal")
-                    .addActionRows(ActionRow.of(courseNumber), ActionRow.of(courseName))
+                    .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
                     .build()
 
                 event.replyModal(courseJoin).queue()
@@ -106,53 +102,47 @@ class SubjectManagerBot : ListenerAdapter() {
         val member = event.member ?: return
         val guild = event.guild ?: return
 
+        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull()//логгер + отправка пользователю сообщение об ошибке ввода
+        val subjectName = event.getValue("subjectName")?.asString ?: "Error" //логгер
+        if (courseNumber == null || courseNumber !in 1..4) {
+            event.reply(
+                "Hi, you have entered wrong course number.\n " +
+                        "It should be a number in range 1..4.\n" +
+                        "Try again, please, or contact administration for help."
+            )
+                .setEphemeral(true).queue()
+            return
+        }
+
+        val category = guild.getCategoriesByName(courses[courseNumber-1], true).first()
+
         when (event.modalId) {
             "course create" -> {
-                val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
-                val courseName = event.getValue("courseName")?.asString ?: "Error" //логгер
-
-                if (courseNumber == null || courseNumber !in 1..4) {
-                    event.reply(
-                        "Hi, you have entered wrong course number.\n " +
-                                "It should be a number in range 1..4.\n" +
-                                "Try again, please, or contact administration for help."
-                    )
-                        .setEphemeral(true).queue()
-                    return
-                }
-
-                val category = guild.getCategoriesByName(courses[courseNumber-1], true).first()
-                category.createTextChannel(courseName).addMemberPermissionOverride(
-                    member.idLong, mutableListOf(
-                        Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
-                    ), null
-                ).complete()
-
-                channelListSetup(guild)
-
-                event.reply("Channel $courseName was created successfully!")
-                    .setEphemeral(true).complete()
+                category.createTextChannel(subjectName).complete()
             }
 
             "course join" -> {
-                val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() ?: return//логгер + отправка пользователю сообщение об ошибке ввода
-                val courseName = event.getValue("courseName")?.asString ?: "Error" //логгер
-
-                val category = guild.getCategoriesByName(courses[courseNumber-1], true).first()
-                val channel = category.textChannels.find { it.name == courseName }
+                val channel = category.textChannels.find { it.name == subjectName }
                 if (channel == null) {
                     event.reply("Problems with course name.").setEphemeral(true).queue()
                     return
                 }
-                channel.manager.putMemberPermissionOverride(
-                    member.idLong, mutableListOf(
-                        Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
-                    ), null
-                ).queue()
-
-                event.reply("Channel $courseName was updated successfully!\n Check ${courses[courseNumber]} category.")
-                    .setEphemeral(true).queue()
+                channel
             }
-        }
+            else -> null
+        }?.manager?.putMemberPermissionOverride(
+            member.idLong, mutableListOf(
+                Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
+            ), null
+        ) ?: run {
+            event.reply("Программист дурак, напишите, пожалуйста, администрации.")
+                .setEphemeral(true).queue()
+            return@onModalInteraction
+        } //logger
+
+        channelListSetup(guild)
+
+        event.reply("Channel $subjectName was created successfully!")
+            .setEphemeral(true).queue()
     }
 }

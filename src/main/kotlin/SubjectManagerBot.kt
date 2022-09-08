@@ -49,8 +49,6 @@ class SubjectManagerBot : ListenerAdapter() {
                 ).asMention
         ).queue()
         channel.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
-
-
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {

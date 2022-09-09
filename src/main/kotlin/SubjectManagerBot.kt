@@ -14,6 +14,11 @@ import Utility.BasicChannels
 import Utility.BasicCategories
 import Utility.channelGetter
 import Utility.courses
+import net.dv8tion.jda.api.entities.MessageHistory
+import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
+import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent
+import net.dv8tion.jda.api.events.channel.update.ChannelUpdateNameEvent
 
 class SubjectManagerBot : ListenerAdapter() {
 
@@ -25,28 +30,6 @@ class SubjectManagerBot : ListenerAdapter() {
         return buttons
     }
 
-    private fun channelListSetup(guild: Guild) {
-
-        val channel = channelGetter(
-            guild,
-            BasicCategories.COURSE_MANAGEMENT.category,
-            BasicChannels.COURSE_LIST.channel
-        )
-        clearChannel(channel)
-
-        val messages = mutableListOf<String>()
-        for (i in 0..3) {
-            val channelList: StringBuilder = StringBuilder("")
-            channelList.append(courses[i] + ":\n")
-            val category =
-                guild.getCategoriesByName(courses[i], true).first() ?: return// Если этой категории нет, дело труба...
-            category.textChannels.forEach { channelList.append("\t\t${it.asMention}\n") }
-            messages.add(channelList.toString())
-        }
-
-        messages.forEach { channel.sendMessage(it).queue() }
-    }
-
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
         val channelInteraction = channelGetter(
@@ -56,8 +39,6 @@ class SubjectManagerBot : ListenerAdapter() {
         )
 
         clearChannel(channelInteraction)
-
-        channelListSetup(guild)
 
         channelInteraction.sendMessage(
             "Этот чат предназначен для создания каналов для курсов " +

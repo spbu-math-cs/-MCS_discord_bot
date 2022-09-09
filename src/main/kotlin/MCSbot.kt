@@ -16,7 +16,7 @@ fun main(args: Array<String>) {
         .enableCache(CacheFlag.ONLINE_STATUS)*/.build()
 
     jda.presence.setStatus(OnlineStatus.ONLINE)
-    jda.addEventListener(TestBot(), RegistrationBot(), SubjectManagerBot())
+    jda.addEventListener(TestBot(), RegistrationBot(), SubjectManagerBot(), ChannelListManager())
 }
 
 /*TODO

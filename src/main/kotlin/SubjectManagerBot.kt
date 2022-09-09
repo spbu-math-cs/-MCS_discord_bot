@@ -83,7 +83,7 @@ class SubjectManagerBot : ListenerAdapter() {
             .build()
 
         val subjectName = TextInput.create("subjectName", "Subject name", TextInputStyle.SHORT)
-            .setRequiredRange(1, 150)
+            .setRequiredRange(1, 100)
             .setPlaceholder("Теоретическая информатика (практика)")
             .build()
 
@@ -133,11 +133,10 @@ class SubjectManagerBot : ListenerAdapter() {
                     ), null
                 ).queue()
 
-                channelListSetup(guild)
-
-               //event.deferReply(true).complete()
-               event.reply("Channel $subjectName was created successfully!")
-                    .setEphemeral(true).complete()
+                event.deferReply(true).queue()
+                event.hook.sendMessage("Channel $subjectName was created successfully!").setEphemeral(true).queue()
+                /*event.reply("Channel $subjectName was created successfully!")
+                     .setEphemeral(true).complete()*/
             }
 
             "course join" -> {
@@ -154,7 +153,8 @@ class SubjectManagerBot : ListenerAdapter() {
                     ), null
                 ).queue()
 
-                event.reply("Channel $subjectName was updated successfully!\n Check ${courses[courseNumber - 1]} category.")
+                event.deferReply(true).queue()
+                event.hook.sendMessage("Channel $subjectName was updated successfully!\n Check ${courses[courseNumber - 1]} category.")
                     .setEphemeral(true).complete()
             }
         }

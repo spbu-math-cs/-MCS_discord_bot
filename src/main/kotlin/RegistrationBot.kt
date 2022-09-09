@@ -122,8 +122,8 @@ class RegistrationBot : ListenerAdapter() {
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }
                 guild.addRoleToMember(member, chosenRole).queue()
                 guild.removeRoleFromMember(member, registrationRole).queue()
-                event.reply("Hi, $surname $name!\n You have been successfully registered!")
-                    .setEphemeral(true).queue()
+                event.deferReply(true).queue()
+                event.hook.sendMessage("Hi, $surname $name!\n You have been successfully registered!").setEphemeral(true).queue()
             }
 
             "professor profile" -> {
@@ -133,8 +133,9 @@ class RegistrationBot : ListenerAdapter() {
 
                 guild.addRoleToMember(member, professorRole).queue()
                 guild.removeRoleFromMember(member, registrationRole).queue()
-                event.reply("Hello, $surname $name!\n You have been successfully registered!").setEphemeral(true)
-                    .queue()
+
+                event.deferReply(true).queue()
+                event.hook.sendMessage("Hello, $surname $name!\n You have been successfully registered!").setEphemeral(true).queue()
             }
         }
     }

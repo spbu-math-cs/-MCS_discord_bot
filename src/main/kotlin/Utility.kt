@@ -51,8 +51,6 @@ object Utility: ListenerAdapter() {
             ?: throw Exception() //логгер
     }
 
-
-
     //Очистка чата
 
     fun clearChannel(channel: TextChannel) {

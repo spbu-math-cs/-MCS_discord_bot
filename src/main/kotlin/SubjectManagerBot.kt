@@ -48,6 +48,9 @@ class SubjectManagerBot : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
+        if (event.componentId !in listOf("create", "join"))
+            return
+
         val courseNumber = TextInput.create("courseNumber", "Course number", TextInputStyle.SHORT)
             .setRequiredRange(1, 1)
             .setPlaceholder("1")
@@ -78,6 +81,9 @@ class SubjectManagerBot : ListenerAdapter() {
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
+        if (event.modalId !in listOf("course create", "course join"))
+            return
+
         val member = event.member ?: return
         val guild = event.guild ?: return
 
@@ -89,8 +95,7 @@ class SubjectManagerBot : ListenerAdapter() {
                 "Hi, you have entered wrong course number.\n " +
                         "It should be a number in range 1..4.\n" +
                         "Try again, please, or contact administration for help."
-            )
-                .setEphemeral(true).queue()
+            ).setEphemeral(true).complete()
             return
         }
 
@@ -100,7 +105,7 @@ class SubjectManagerBot : ListenerAdapter() {
                 if (category.textChannels.map { it.name }.contains(subjectName)) {
                     event.deferReply(true).queue()
                     event.hook.sendMessage("Channel with this name already exists. Join it instead of creating.")
-                        .setEphemeral(true).queue()
+                        .setEphemeral(true).complete()
                     return
                 }
                 category.createTextChannel(subjectName).addMemberPermissionOverride(
@@ -111,7 +116,7 @@ class SubjectManagerBot : ListenerAdapter() {
 
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Channel $subjectName was created successfully!")
-                    .setEphemeral(true).queue()
+                    .setEphemeral(true).complete()
             }
 
             "course join" -> {

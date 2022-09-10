@@ -21,7 +21,6 @@ class RegistrationBot : ListenerAdapter() {
     private lateinit var professorRole: Role
 
     override fun onGuildReady(event: GuildReadyEvent) {
-
         val guild = event.guild
 
         registrationRole = Utility.getRole(Roles.REGISTRATION, guild)
@@ -47,7 +46,8 @@ class RegistrationBot : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        val member = event.member ?: return
+        if (event.componentId !in listOf("student", "professor"))
+            return
 
         val name = TextInput.create("name", "Name", TextInputStyle.SHORT)
             .setRequiredRange(1, 50)
@@ -61,8 +61,6 @@ class RegistrationBot : ListenerAdapter() {
 
         when (event.componentId) {
             "student" -> {
-                if (member.roles.contains(professorRole))
-                    return
                 val courseNumber = TextInput.create("courseNumber", "courseNumber", TextInputStyle.SHORT)
                     .setRequiredRange(1, 1)
                     .setPlaceholder("1")
@@ -72,30 +70,25 @@ class RegistrationBot : ListenerAdapter() {
                     .addActionRows(ActionRow.of(surname), ActionRow.of(name), ActionRow.of(courseNumber))
                     .build()
 
-                event.replyModal(studentRegModal).queue()
+                event.replyModal(studentRegModal).complete()
             }
 
             "professor" -> {
-//                if (member.roles.any { courseRoles.contains(it) })
-//                    return
-//                val professorRegModal = Modal.create("professor profile", "Setting professor profile")
-//                    .addActionRows(ActionRow.of(surname), ActionRow.of(name))
-//                    .build()
-//
-//                event.replyModal(professorRegModal).queue()
+                val professorRegModal = Modal.create("professor profile", "Setting professor profile")
+                    .addActionRows(ActionRow.of(surname), ActionRow.of(name))
+                    .build()
+
+                event.replyModal(professorRegModal).complete()
             }
         }
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
+        if (event.modalId !in listOf("student profile", "professor profile"))
+            return
+
         val member = event.member ?: return
         val guild = event.guild ?: return
-
-        if (!member.roles.contains(guild.getRolesByName(Roles.REGISTRATION.label, true).first())) {
-            event.deferReply(true).queue()
-            event.hook.sendMessage("You have been already registered. It is impossible to do it again.")
-                .setEphemeral(true).queue()
-        }
 
         when (event.modalId) {
             "student profile" -> {
@@ -108,12 +101,11 @@ class RegistrationBot : ListenerAdapter() {
                         "Hi, you have entered wrong course number.\n " +
                                 "It should be a number in range 1..4.\n" +
                                 "Try again, please, or contact administration for help."
-                    )
-                        .setEphemeral(true).queue()
+                    ).setEphemeral(true).complete()
                     return
                 }
 
-                val chosenRole = Utility.getCourseRole(courseNumber - 1, guild)
+                val chosenRole = Utility.getCourseRole(courseNumber, guild)
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }
@@ -129,8 +121,7 @@ class RegistrationBot : ListenerAdapter() {
                 val name = event.getValue("name")?.asString ?: "Error"
                 member.modifyNickname("$surname $name".trim()).queue()
 
-                guild.addRoleToMember(member, professorRole).queue()
-                guild.removeRoleFromMember(member, registrationRole).queue()
+                guild.modifyMemberRoles(member, listOf(professorRole), listOf(registrationRole)).queue()
 
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Hello, $surname $name!\n You have been successfully registered!")

@@ -11,10 +11,10 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import Utility.Roles
-import Utility.BasicChannels
-import Utility.BasicCategories
-import Utility.channelGetter
-import Utility.courses
+import Utility.Channels
+import Utility.Categories
+import Utility.getCategory
+import Utility.getChannel
 
 class RegistrationBot : ListenerAdapter() {
     private lateinit var registrationRole: Role

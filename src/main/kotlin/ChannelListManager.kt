@@ -1,8 +1,10 @@
-import Utility.BasicChannels
-import Utility.BasicCategories
-import Utility.channelGetter
+import Utility.Channels
+import Utility.Categories
+import Utility.getChannel
 import Utility.clearChannel
 import Utility.courses
+import Utility.getCategory
+import Utility.getCourseCategory
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.entities.TextChannel
@@ -46,7 +48,7 @@ class ChannelListManager : ListenerAdapter() {
         guild = event.guild
         guild.channels.forEach { it.manager.setName(it.name.replace('-','_').trim()).queue() }
 
-        channel = channelGetter(guild, BasicCategories.COURSE_MANAGEMENT.category, BasicChannels.COURSE_LIST.channel) // обработка если канал не найден
+        channel = getChannel(Channels.COURSE_LIST.label, getCategory(Categories.COURSE_MANAGEMENT, guild))
         sendMessage()
     }
 

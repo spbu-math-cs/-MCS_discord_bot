@@ -1,6 +1,5 @@
 import Utility.clearChannel
 import net.dv8tion.jda.api.Permission
-import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -10,15 +9,12 @@ import net.dv8tion.jda.api.interactions.components.Modal
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
-import Utility.BasicChannels
-import Utility.BasicCategories
-import Utility.channelGetter
+import Utility.Channels
+import Utility.Categories
+import Utility.getChannel
 import Utility.courses
-import net.dv8tion.jda.api.entities.MessageHistory
-import net.dv8tion.jda.api.entities.TextChannel
-import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
-import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent
-import net.dv8tion.jda.api.events.channel.update.ChannelUpdateNameEvent
+import Utility.getCategory
+import Utility.getCourseCategory
 
 class SubjectManagerBot : ListenerAdapter() {
     private fun sendCreateAndJoin(): List<Button> {
@@ -30,10 +26,9 @@ class SubjectManagerBot : ListenerAdapter() {
 
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
-        val channelInteraction = channelGetter(
-            guild,
-            BasicCategories.COURSE_MANAGEMENT.category,
-            BasicChannels.COURSE_INTERACTION.channel
+        val channelInteraction = getChannel(
+            Channels.COURSE_INTERACTION.label,
+            getCategory(Categories.COURSE_MANAGEMENT, guild)
         )
 
         clearChannel(channelInteraction)
@@ -45,10 +40,8 @@ class SubjectManagerBot : ListenerAdapter() {
         channelInteraction.sendMessage(
             "Ознакомиться с полным списком курсов " +
                     "Вы можете в соседнем канале: " +
-                    channelGetter(
-                        guild,
-                        BasicCategories.COURSE_MANAGEMENT.category,
-                        BasicChannels.COURSE_LIST.channel
+                    getChannel(Channels.COURSE_LIST.label,
+                        getCategory(Categories.COURSE_MANAGEMENT, guild)
                     ).asMention
         ).queue()
         channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()

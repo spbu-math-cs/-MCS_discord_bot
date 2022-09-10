@@ -1,3 +1,4 @@
+import net.dv8tion.jda.api.entities.Category
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.entities.Role
@@ -37,7 +38,7 @@ object Utility: ListenerAdapter() {
             ?: throw Exception() //логгер
     }
 
-    enum class BasicChannels(val channel: String) {
+    enum class Channels(val label: String) {
         REGISTRATION("регистрация"),
         COURSE_LIST("список_курсов"),
         COURSE_INTERACTION("взаимодействие_с_курсами"),
@@ -49,6 +50,7 @@ object Utility: ListenerAdapter() {
         return category.textChannels.find { it.name == channelName }
             ?: throw Exception() //логгер
     }
+
 
 
     //Очистка чата
@@ -63,12 +65,5 @@ object Utility: ListenerAdapter() {
             else
                 deletingFlag = false
         }
-    }
-
-    fun channelGetter(guild: Guild, categoryName: String, channelName: String): TextChannel {
-        val category = guild.getCategoriesByName(categoryName, true).firstOrNull() ?:
-            guild.createCategory(categoryName).complete()//логгер
-        return category.textChannels.find { it.name == channelName } ?: //привести к нормальному виду перед этим
-            category.createTextChannel(channelName).complete()
     }
 }

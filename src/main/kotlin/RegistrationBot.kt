@@ -100,6 +100,12 @@ class RegistrationBot : ListenerAdapter() {
         val member = event.member ?: return
         val guild = event.guild ?: return
 
+        if (!member.roles.contains(guild.getRolesByName(Roles.REGISTRATION.label, true).first())) {
+            event.deferReply(true).queue()
+            event.hook.sendMessage("You have been already registered. It is impossible to do it again.")
+                .setEphemeral(true).queue()
+        }
+
         when (event.modalId) {
             "student profile" -> {
                 val surname = event.getValue("surname")?.asString ?: "Error" //логгер

@@ -106,8 +106,13 @@ class SubjectManagerBot : ListenerAdapter() {
 
         when (event.modalId) {
             "course create" -> {
-
-                val category = guild.getCategoriesByName(courses[courseNumber - 1], true).first()
+                val category = getCourseCategory(courseNumber, guild)
+                if (category.textChannels.map { it.name }.contains(subjectName)) {
+                    event.deferReply(true).queue()
+                    event.hook.sendMessage("Channel with this name already exists. Join it instead of creating.")
+                        .setEphemeral(true).queue()
+                    return
+                }
                 category.createTextChannel(subjectName).addMemberPermissionOverride(
                     member.idLong, mutableListOf(
                         Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL

@@ -50,12 +50,12 @@ class RegistrationBot : ListenerAdapter() {
             return
 
         val name = TextInput.create("name", "Name", TextInputStyle.SHORT)
-            .setRequiredRange(1, 50)
+            .setRequiredRange(1, 15)
             .setPlaceholder("Иван")
             .build()
 
         val surname = TextInput.create("surname", "Surname", TextInputStyle.SHORT)
-            .setRequiredRange(1, 50)
+            .setRequiredRange(1, 15)
             .setPlaceholder("Иванов")
             .build()
 
@@ -95,7 +95,6 @@ class RegistrationBot : ListenerAdapter() {
                 val surname = event.getValue("surname")?.asString ?: "Error" //логгер
                 val name = event.getValue("name")?.asString ?: "Error" //логгер
                 val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull() //логгер
-                println(courseNumber)
                 if (courseNumber == null || courseNumber !in 1..4) {
                     event.reply(
                         "Hi, you have entered wrong course number.\n " +
@@ -109,11 +108,11 @@ class RegistrationBot : ListenerAdapter() {
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }
-                guild.addRoleToMember(member, chosenRole).queue()
-                guild.removeRoleFromMember(member, registrationRole).queue()
+                guild.modifyMemberRoles(member, listOf(chosenRole), listOf(registrationRole)).queue()
+
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Hi, $surname $name!\n You have been successfully registered!")
-                    .setEphemeral(true).queue()
+                    .setEphemeral(true).complete()
             }
 
             "professor profile" -> {
@@ -125,7 +124,7 @@ class RegistrationBot : ListenerAdapter() {
 
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Hello, $surname $name!\n You have been successfully registered!")
-                    .setEphemeral(true).queue()
+                    .setEphemeral(true).complete()
             }
         }
     }

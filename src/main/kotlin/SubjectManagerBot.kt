@@ -15,6 +15,7 @@ import Utility.getChannel
 import Utility.courses
 import Utility.getCategory
 import Utility.getCourseCategory
+import Utility.normalizeChanelName
 
 class SubjectManagerBot : ListenerAdapter() {
     private fun sendCreateAndJoin(): List<Button> {
@@ -88,7 +89,7 @@ class SubjectManagerBot : ListenerAdapter() {
         val guild = event.guild ?: return
 
         val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
-        val subjectName = event.getValue("subjectName")?.asString ?: "Error" //логгер
+        val subjectName = normalizeChanelName(event.getValue("subjectName")?.asString ?: "Error") //логгер
 
         if (courseNumber == null || courseNumber !in 1..4) {
             event.reply(

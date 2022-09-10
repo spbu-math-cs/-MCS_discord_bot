@@ -57,11 +57,15 @@ object Utility: ListenerAdapter() {
         var deletingFlag = true
         val history = MessageHistory(channel)
         while (deletingFlag) {
-            val messages = history.retrievePast(100).complete()
+            val messages = history.retrievePast(30).complete()
             if (messages.size > 1)
                 channel.deleteMessages(messages).queue()
             else
                 deletingFlag = false
         }
+    }
+
+    fun normalizeChanelName(name: String): String {
+        return name.replace('-', '_').replace(' ', '_').trim()
     }
 }

@@ -21,8 +21,6 @@ import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent
 import net.dv8tion.jda.api.events.channel.update.ChannelUpdateNameEvent
 
 class SubjectManagerBot : ListenerAdapter() {
-
-
     private fun sendCreateAndJoin(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
         buttons.add(Button.primary("create", "Создать"))
@@ -57,7 +55,6 @@ class SubjectManagerBot : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-
         val courseNumber = TextInput.create("courseNumber", "Course number", TextInputStyle.SHORT)
             .setRequiredRange(1, 1)
             .setPlaceholder("1")
@@ -120,17 +117,17 @@ class SubjectManagerBot : ListenerAdapter() {
                 ).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Channel $subjectName was created successfully!").setEphemeral(true).queue()
-                /*event.reply("Channel $subjectName was created successfully!")
-                     .setEphemeral(true).complete()*/
+                event.hook.sendMessage("Channel $subjectName was created successfully!")
+                    .setEphemeral(true).queue()
             }
 
             "course join" -> {
-
-                val category = guild.getCategoriesByName(courses[courseNumber - 1], true).first()
+                val category = getCourseCategory(courseNumber, guild)
                 val channel = category.textChannels.find { it.name == subjectName }
                 if (channel == null) {
-                    event.reply("Problems with course name.").setEphemeral(true).queue()
+                    event.deferReply(true).queue()
+                    event.hook.sendMessage("Problems with course name.")
+                        .setEphemeral(true).complete()
                     return
                 }
                 channel.manager.putMemberPermissionOverride(
@@ -140,8 +137,8 @@ class SubjectManagerBot : ListenerAdapter() {
                 ).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Channel $subjectName was updated successfully!\n Check ${courses[courseNumber - 1]} category.")
-                    .setEphemeral(true).complete()
+                event.hook.sendMessage("Channel $subjectName was updated successfully!\n " +
+                        "Check ${courses[courseNumber - 1]} category.").setEphemeral(true).complete()
             }
         }
     }

@@ -17,8 +17,6 @@ import Utility.channelGetter
 import Utility.courses
 
 class RegistrationBot : ListenerAdapter() {
-
-    private val courseRoles: MutableList<Role> = mutableListOf()
     private lateinit var registrationRole: Role
     private lateinit var professorRole: Role
 
@@ -26,27 +24,20 @@ class RegistrationBot : ListenerAdapter() {
 
         val guild = event.guild
 
-        registrationRole = event.guild.getRolesByName(Roles.REGISTRATION.roleName, true).first()
-        professorRole = event.guild.getRolesByName(Roles.PROFESSOR.roleName, true).first()
-        for (i in 0..3)
-            courseRoles.add(event.guild.getRolesByName(courses[i], true).first())
+        registrationRole = Utility.getRole(Roles.REGISTRATION, guild)
+        professorRole = Utility.getRole(Roles.PROFESSOR, guild)
 
-        val channel = channelGetter(guild,BasicCategories.REGISTRATION.category,BasicChannels.REGISTRATION.channel)
+        val channel = getChannel(Channels.REGISTRATION.label, getCategory(Categories.REGISTRATION, guild))
 
         clearChannel(channel)
 
-        channel.sendMessage("Рады приветствовать вас на официальном сервере программы Современное Программирование!")
-            .queue()
+        channel.sendMessage("Рады приветствовать вас на официальном " +
+                "сервере программы Современное Программирование!").queue()
         channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).complete()
-
     }
 
-    override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
-        event.guild.addRoleToMember(
-            event.member, event.guild.getRolesByName(Roles.REGISTRATION.roleName, true)
-                .first()
-        ).queue()
-    }
+    override fun onGuildMemberJoin(event: GuildMemberJoinEvent) =
+        event.guild.addRoleToMember(event.member, Utility.getRole(Roles.REGISTRATION, event.guild)).queue()
 
     private fun sendStudentAndProfessor(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
@@ -85,13 +76,13 @@ class RegistrationBot : ListenerAdapter() {
             }
 
             "professor" -> {
-                if (member.roles.any { courseRoles.contains(it) })
-                    return
-                val professorRegModal = Modal.create("professor profile", "Setting professor profile")
-                    .addActionRows(ActionRow.of(surname), ActionRow.of(name))
-                    .build()
-
-                event.replyModal(professorRegModal).queue()
+//                if (member.roles.any { courseRoles.contains(it) })
+//                    return
+//                val professorRegModal = Modal.create("professor profile", "Setting professor profile")
+//                    .addActionRows(ActionRow.of(surname), ActionRow.of(name))
+//                    .build()
+//
+//                event.replyModal(professorRegModal).queue()
             }
         }
     }
@@ -122,14 +113,15 @@ class RegistrationBot : ListenerAdapter() {
                     return
                 }
 
-                val chosenRole = courseRoles[courseNumber - 1]
+                val chosenRole = Utility.getCourseRole(courseNumber - 1, guild)
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }
                 guild.addRoleToMember(member, chosenRole).queue()
                 guild.removeRoleFromMember(member, registrationRole).queue()
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Hi, $surname $name!\n You have been successfully registered!").setEphemeral(true).queue()
+                event.hook.sendMessage("Hi, $surname $name!\n You have been successfully registered!")
+                    .setEphemeral(true).queue()
             }
 
             "professor profile" -> {
@@ -141,7 +133,8 @@ class RegistrationBot : ListenerAdapter() {
                 guild.removeRoleFromMember(member, registrationRole).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Hello, $surname $name!\n You have been successfully registered!").setEphemeral(true).queue()
+                event.hook.sendMessage("Hello, $surname $name!\n You have been successfully registered!")
+                    .setEphemeral(true).queue()
             }
         }
     }

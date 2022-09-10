@@ -13,25 +13,17 @@ import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class ChannelListManager : ListenerAdapter() {
-
-    @Synchronized
     private fun channelListSetup(guild: Guild): String {
-
         val channelList: StringBuilder = StringBuilder("")
-        for (i in 0..3) {
-            channelList.append(courses[i] + ":\n")
-            val category =
-                guild.getCategoriesByName(courses[i], true).first()
-                    ?: return ""// Если этой категории нет, дело труба...
+        courses.forEachIndexed { i, label ->
+            channelList.append("$label:\n")
+            val category = getCourseCategory(i + 1, guild)
             category.textChannels.filter {
-                it.name != BasicChannels.CHAT.channel
-                        && it.name != BasicChannels.INFO.channel
-                        && it.name != BasicChannels.ARCHIVE.channel
+                it.name != Channels.CHAT.label && it.name != Channels.INFO.label
             }.forEach { channelList.append("\t\t${it.asMention}\n") }
         }
 
         return channelList.toString()
-
     }
 
     private lateinit var channel: TextChannel
@@ -47,7 +39,6 @@ class ChannelListManager : ListenerAdapter() {
                 channel.sendMessage(channelListSetup(guild)).queue()
             }
         }
-
     }
 
 

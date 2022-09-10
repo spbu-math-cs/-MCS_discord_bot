@@ -5,9 +5,8 @@ import Utility.clearChannel
 import Utility.courses
 import Utility.getCategory
 import Utility.getCourseCategory
-import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.MessageHistory
-import net.dv8tion.jda.api.entities.TextChannel
+import Utility.normalizeChanelName
+import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
 import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent
 import net.dv8tion.jda.api.events.channel.update.ChannelUpdateNameEvent
@@ -28,17 +27,21 @@ class ChannelListManager : ListenerAdapter() {
         return channelList.toString()
     }
 
-    private lateinit var channel: TextChannel
+    private lateinit var subjectListChannel: TextChannel
     private lateinit var guild: Guild
 
     private fun sendMessage() {
-        val messages = MessageHistory(channel).retrievePast(100).complete()
+        val messages = MessageHistory(subjectListChannel).retrievePast(100).complete()
         when (messages.size) {
-            0 -> channel.sendMessage(channelListSetup(guild)).queue()
-            1 -> channel.editMessageById(channel.latestMessageId, channelListSetup(guild)).queue()
+            0 -> subjectListChannel.sendMessage(channelListSetup(guild)).queue()
+            1 -> {
+                subjectListChannel.sendMessage("delete").complete()
+                clearChannel(subjectListChannel)
+                subjectListChannel.sendMessage(channelListSetup(guild)).queue()
+            }
             else -> {
-                clearChannel(channel)
-                channel.sendMessage(channelListSetup(guild)).queue()
+                clearChannel(subjectListChannel)
+                subjectListChannel.sendMessage(channelListSetup(guild)).queue()
             }
         }
     }
@@ -46,13 +49,26 @@ class ChannelListManager : ListenerAdapter() {
 
     override fun onGuildReady(event: GuildReadyEvent) {
         guild = event.guild
-        guild.channels.forEach { it.manager.setName(it.name.replace('-','_').trim()).queue() }
+        guild.channels.filterIsInstance<TextChannel>().forEach { it.manager.setName(normalizeChanelName(it.name)).queue() }
 
-        channel = getChannel(Channels.COURSE_LIST.label, getCategory(Categories.COURSE_MANAGEMENT, guild))
+        subjectListChannel = getChannel(Channels.COURSE_LIST.label, getCategory(Categories.COURSE_MANAGEMENT, guild))
         sendMessage()
     }
 
+    private fun checkAndCorrectChannelName(channel: TextChannel): Boolean {
+        val correctName = normalizeChanelName(channel.name)
+        channel.manager.setName(correctName).complete()
+        if (guild.channels.map { it.name }.count{ it == correctName } > 1)
+            return false
+        return true
+    }
+
     override fun onChannelCreate(event: ChannelCreateEvent) {
+        val channel = event.channel
+        if (channel !is TextChannel)
+            return
+        if (!checkAndCorrectChannelName(channel))
+            channel.delete().complete()
         sendMessage()
     }
 
@@ -61,6 +77,11 @@ class ChannelListManager : ListenerAdapter() {
     }
 
     override fun onChannelUpdateName(event: ChannelUpdateNameEvent) {
+        val channel = event.channel
+        if (channel !is TextChannel)
+            return
+        if (!checkAndCorrectChannelName(channel))
+            event.oldValue?.let { channel.manager.setName(it).complete() }
         sendMessage()
     }
 }

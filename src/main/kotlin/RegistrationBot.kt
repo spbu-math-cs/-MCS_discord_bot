@@ -15,10 +15,26 @@ import Utility.Channels
 import Utility.Categories
 import Utility.getCategory
 import Utility.getChannel
+import Utility.getRole
+import Utility.sendMessageAndDeferReply
+import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.MessageEmbed
+import java.awt.Color
 
 class RegistrationBot : ListenerAdapter() {
     private lateinit var registrationRole: Role
     private lateinit var professorRole: Role
+    private lateinit var professorConfirmationRole: Role
+
+    private val nameTextInput = TextInput.create("name", "Name", TextInputStyle.SHORT)
+        .setRequiredRange(1, 15)
+        .setPlaceholder("Иван")
+        .build()
+    private val surnameTextInput = TextInput.create("surname", "Surname", TextInputStyle.SHORT)
+        .setRequiredRange(1, 15)
+        .setPlaceholder("Иванов")
+        .build()
 
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
@@ -123,6 +139,18 @@ class RegistrationBot : ListenerAdapter() {
         }
     }
 
+    private fun createConfirmationMessage(member: Member, name: String, surname:String): MessageEmbed {
+        val messageForConfirmation = EmbedBuilder()
+        messageForConfirmation.setDescription(member.user.asTag)
+        messageForConfirmation.setTitle("Professor role confirmation")
+        messageForConfirmation.addField("Discord profile", member.asMention, false)
+        messageForConfirmation.addField("Specified name", name, false)
+        messageForConfirmation.addField("Specified surname", surname, false)
+        messageForConfirmation.setColor(Color.CYAN)
+
+        return messageForConfirmation.build()
+    }
+
     override fun onModalInteraction(event: ModalInteractionEvent) {
         if (event.modalId !in listOf("student profile", "professor profile"))
             return
@@ -160,11 +188,22 @@ class RegistrationBot : ListenerAdapter() {
                 val name = event.getValue("name")?.asString ?: "Error"
                 member.modifyNickname("$surname $name".trim()).queue()
 
-                guild.modifyMemberRoles(member, listOf(professorRole), listOf(registrationRole)).queue()
+                guild.modifyMemberRoles(member, listOf(professorConfirmationRole), listOf(registrationRole)).queue()
 
+                val channelConfirmation = getChannel(
+                    Channels.PROFESSOR_CONFIRMATION.label,
+                    getCategory(Categories.ADMINISTRATION,guild)
+                )
+                
+                channelConfirmation.sendMessageEmbeds(
+                    createConfirmationMessage(member, name, surname)
+                ).setActionRow(
+                    Button.primary("accept", "Accept"),
+                    Button.primary("deny", "Deny")
+                ).queue()
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Hello, $surname $name!\n You have been successfully registered!")
-                    .setEphemeral(true).complete()
+                event.hook.sendMessage("Hello, $surname $name!\n Wait until " +
+                        "administration confirm your profile.").setEphemeral(true).complete()
             }
         }
     }

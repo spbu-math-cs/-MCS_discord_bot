@@ -11,7 +11,8 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter
 object Utility: ListenerAdapter() {
     enum class Roles(val label: String) {
         REGISTRATION("Регистрация"),
-        PROFESSOR("Преподаватель")
+        PROFESSOR("Преподаватель"),
+        PROFESSOR_CONFIRMATION("Ожидает подтверждения"),
     }
 
     val courses: List<String> = listOf("СП 1", "СП 2", "СП 3", "СП 4")
@@ -28,7 +29,8 @@ object Utility: ListenerAdapter() {
 
     enum class Categories(val label: String){
         REGISTRATION("Регистрация"),
-        COURSE_MANAGEMENT("Управление курсами"),
+        ADMINISTRATION("Администрация"),
+        COURSE_MANAGEMENT("Управление курсами")
     }
 
     fun getCategory(categoryEnum: Categories, guild: Guild): Category {
@@ -43,6 +45,7 @@ object Utility: ListenerAdapter() {
 
     enum class Channels(val label: String) {
         REGISTRATION("регистрация"),
+        PROFESSOR_CONFIRMATION("подтверждение_роли"),
         COURSE_LIST("список_курсов"),
         COURSE_INTERACTION("взаимодействие_с_курсами"),
         INFO("стойка_информации_и_полезные_ссылки"),

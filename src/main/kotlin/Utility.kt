@@ -3,6 +3,9 @@ import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.events.Event
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 object Utility: ListenerAdapter() {
@@ -67,5 +70,19 @@ object Utility: ListenerAdapter() {
 
     fun normalizeChanelName(name: String): String {
         return name.replace('-', '_').replace(' ', '_').trim()
+    }
+
+    fun sendMessageAndDeferReply(event: Event, text: String) {
+        when (event) {
+            is ButtonInteractionEvent -> {
+                event.deferReply(true).queue()
+                event.hook
+            }
+            is ModalInteractionEvent -> {
+                event.deferReply(true).queue()
+                event.hook
+            }
+            else -> null
+        }?.sendMessage(text)?.setEphemeral(true)?.complete()
     }
 }

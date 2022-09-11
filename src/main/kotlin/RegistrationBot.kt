@@ -23,8 +23,9 @@ class RegistrationBot : ListenerAdapter() {
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
 
-        registrationRole = Utility.getRole(Roles.REGISTRATION, guild)
-        professorRole = Utility.getRole(Roles.PROFESSOR, guild)
+        registrationRole = getRole(Roles.REGISTRATION, guild)
+        professorRole = getRole(Roles.PROFESSOR, guild)
+        professorConfirmationRole = getRole(Roles.PROFESSOR_CONFIRMATION, guild)
 
         val channel = getChannel(Channels.REGISTRATION.label, getCategory(Categories.REGISTRATION, guild))
 
@@ -36,7 +37,7 @@ class RegistrationBot : ListenerAdapter() {
     }
 
     override fun onGuildMemberJoin(event: GuildMemberJoinEvent) =
-        event.guild.addRoleToMember(event.member, Utility.getRole(Roles.REGISTRATION, event.guild)).queue()
+        event.guild.addRoleToMember(event.member, getRole(Roles.REGISTRATION, event.guild)).queue()
 
     private fun sendStudentAndProfessor(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
@@ -46,18 +47,53 @@ class RegistrationBot : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        if (event.componentId !in listOf("student", "professor"))
+        if (event.componentId !in listOf("student", "professor", "accept", "deny"))
             return
 
-        val name = TextInput.create("name", "Name", TextInputStyle.SHORT)
-            .setRequiredRange(1, 15)
-            .setPlaceholder("Иван")
-            .build()
+        fun acceptOrDeny(accept: Boolean) {
 
-        val surname = TextInput.create("surname", "Surname", TextInputStyle.SHORT)
-            .setRequiredRange(1, 15)
-            .setPlaceholder("Иванов")
-            .build()
+            val guild = event.guild ?: let {
+                sendMessageAndDeferReply(event, "Wrong accept confirmation: " +
+                        "there is no guild in processing event.\n " +
+                        "Please, tell dummy programmers about that, and they will definitely fix that.")
+                return@acceptOrDeny //логгер
+            }
+
+            val embed = event.message.embeds.firstOrNull() ?: let {
+                sendMessageAndDeferReply(event, "Wrong message format.\n " +
+                        "Please, tell dummy programmers about that, and they will definitely fix that.")
+                return@acceptOrDeny //логгер
+            }
+
+            val registeredMember = guild.getMemberByTag(embed.description.toString()) ?: let {
+                sendMessageAndDeferReply(event, "Wrong message format.\n " +
+                        "Please, tell dummy programmers about that, and they will definitely fix that.")
+                return@acceptOrDeny //логгер
+            }
+
+            event.message.delete().queue()
+
+            if (accept) {
+                guild.modifyMemberRoles(
+                    registeredMember,
+                    listOf(getRole(Roles.PROFESSOR, guild)),
+                    listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
+                ).queue()
+
+                sendMessageAndDeferReply(event, "Accepted successfully!\n" +
+                        "Member ${registeredMember.asMention} is professor now.")
+            } else {
+                guild.modifyMemberRoles(
+                    registeredMember,
+                    listOf(getRole(Roles.REGISTRATION, guild)),
+                    listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
+                ).queue()
+
+                sendMessageAndDeferReply(event, "Denied successfully!\n" +
+                        "Member ${registeredMember.asMention} is pushed back into registration.\n" +
+                        "You can ban or kick him/her, if he/she continues doing this.")
+            }
+        }
 
         when (event.componentId) {
             "student" -> {
@@ -67,7 +103,7 @@ class RegistrationBot : ListenerAdapter() {
                     .build()
 
                 val studentRegModal = Modal.create("student profile", "Setting student profile")
-                    .addActionRows(ActionRow.of(surname), ActionRow.of(name), ActionRow.of(courseNumber))
+                    .addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput), ActionRow.of(courseNumber))
                     .build()
 
                 event.replyModal(studentRegModal).complete()
@@ -75,11 +111,15 @@ class RegistrationBot : ListenerAdapter() {
 
             "professor" -> {
                 val professorRegModal = Modal.create("professor profile", "Setting professor profile")
-                    .addActionRows(ActionRow.of(surname), ActionRow.of(name))
+                    .addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput))
                     .build()
 
                 event.replyModal(professorRegModal).complete()
             }
+
+            "accept" -> acceptOrDeny(true)
+
+            "deny" -> acceptOrDeny(false)
         }
     }
 

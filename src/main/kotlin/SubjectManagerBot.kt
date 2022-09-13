@@ -112,7 +112,7 @@ class SubjectManagerBot : ListenerAdapter() {
                     "at ${this.javaClass.name}")
             return@onModalInteraction
         }
-        val guild = event.guild ?: return
+        val guild = event.guild ?: return //логгер
 
         val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
         val subjectName = normalizeChanelName(event.getValue("subjectName")?.asString ?: "Error") //логгер

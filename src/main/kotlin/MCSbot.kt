@@ -8,7 +8,6 @@ fun main(args: Array<String>) {
         println("Программист дурачок - забыл про токен.")
         return
     }
-    globalLogger.info("hi", System.out)
 
     val jda = JDABuilder.create(
         args[0],

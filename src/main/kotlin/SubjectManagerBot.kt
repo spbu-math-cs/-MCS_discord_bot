@@ -1,3 +1,10 @@
+import GlobalLogger.globalLogger
+import GlobalLogger.logButtonInteractionEnter
+import GlobalLogger.logButtonInteractionLeave
+import GlobalLogger.logFunctionEnter
+import GlobalLogger.logFunctionLeave
+import GlobalLogger.logModalInteractionEnter
+import GlobalLogger.logModalInteractionLeave
 import Utility.clearChannel
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
@@ -16,6 +23,7 @@ import Utility.courses
 import Utility.getCategory
 import Utility.getCourseCategory
 import Utility.normalizeChanelName
+import Utility.sendMessageAndDeferReply
 
 class SubjectManagerBot : ListenerAdapter() {
     private fun sendCreateAndJoin(): List<Button> {
@@ -26,6 +34,8 @@ class SubjectManagerBot : ListenerAdapter() {
     }
 
     override fun onGuildReady(event: GuildReadyEvent) {
+        logFunctionEnter(Throwable().stackTrace[0].methodName,this.javaClass.name)
+
         val guild = event.guild
         val channelInteraction = getChannel(
             Channels.COURSE_INTERACTION.label,
@@ -46,11 +56,15 @@ class SubjectManagerBot : ListenerAdapter() {
                     ).asMention
         ).queue()
         channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
+
+        logFunctionLeave(Throwable().stackTrace[0].methodName,this.javaClass.name)
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
         if (event.componentId !in listOf("create", "join"))
             return
+
+        logButtonInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
 
         val courseNumber = TextInput.create("courseNumber", "Course number", TextInputStyle.SHORT)
             .setRequiredRange(1, 1)
@@ -79,13 +93,25 @@ class SubjectManagerBot : ListenerAdapter() {
                 event.replyModal(courseJoin).queue()
             }
         }
+        logButtonInteractionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
         if (event.modalId !in listOf("course create", "course join"))
             return
 
-        val member = event.member ?: return
+        logModalInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.modalId)
+
+        val member = event.member  ?: let {
+            sendMessageAndDeferReply(
+                event, "Wrong accept confirmation: " +
+                        "there is no guild in processing event.\n " +
+                        "Please, tell dummy programmers about that, and they will definitely fix that."
+            )
+            globalLogger.error("Guild was not found in event in ${Throwable().stackTrace[0].methodName} " +
+                    "at ${this.javaClass.name}")
+            return@onModalInteraction
+        }
         val guild = event.guild ?: return
 
         val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
@@ -140,5 +166,7 @@ class SubjectManagerBot : ListenerAdapter() {
                         "Check ${courses[courseNumber - 1]} category.").setEphemeral(true).complete()
             }
         }
+
+        logModalInteractionLeave(Throwable().stackTrace[0].methodName,this.javaClass.name, event.modalId)
     }
 }

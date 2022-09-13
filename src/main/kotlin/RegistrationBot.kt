@@ -1,4 +1,9 @@
-import Utility.clearChannel
+import GlobalLogger.GREEN
+import GlobalLogger.RESET
+import GlobalLogger.YELLOW
+import GlobalLogger.globalLogger
+import GlobalLogger.logButtonInteractionEnter
+import GlobalLogger.logButtonInteractionLeave
 import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
@@ -10,6 +15,11 @@ import net.dv8tion.jda.api.interactions.components.Modal
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
+import GlobalLogger.logFunctionEnter
+import GlobalLogger.logFunctionLeave
+import GlobalLogger.logModalInteractionEnter
+import GlobalLogger.logModalInteractionLeave
+import Utility.clearChannel
 import Utility.Roles
 import Utility.Channels
 import Utility.Categories
@@ -48,13 +58,20 @@ class RegistrationBot : ListenerAdapter() {
 
         clearChannel(channel)
 
-        channel.sendMessage("Рады приветствовать вас на официальном " +
-                "сервере программы Современное Программирование!").queue()
+        channel.sendMessage(
+            "Рады приветствовать вас на официальном " +
+                    "сервере программы Современное Программирование!"
+        ).queue()
         channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).complete()
     }
 
-    override fun onGuildMemberJoin(event: GuildMemberJoinEvent) =
+    override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
+        logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
+
         event.guild.addRoleToMember(event.member, getRole(Roles.REGISTRATION, event.guild)).queue()
+
+        logFunctionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name)
+    }
 
     private fun sendStudentAndProfessor(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
@@ -64,31 +81,42 @@ class RegistrationBot : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-
-        globalLogger.debug("Entered function ${Throwable().stackTrace[0].methodName}",System.out)
-
         if (event.componentId !in listOf("student", "professor", "accept", "deny"))
             return
+
+        logButtonInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
 
         fun acceptOrDeny(accept: Boolean) {
 
             val guild = event.guild ?: let {
-                sendMessageAndDeferReply(event, "Wrong accept confirmation: " +
-                        "there is no guild in processing event.\n " +
-                        "Please, tell dummy programmers about that, and they will definitely fix that.")
-                return@acceptOrDeny //логгер
+                sendMessageAndDeferReply(
+                    event, "Wrong accept confirmation: " +
+                            "there is no guild in processing event.\n " +
+                            "Please, tell dummy programmers about that, and they will definitely fix that."
+                )
+                globalLogger.error("Guild was not found in event in ${Throwable().stackTrace[0].methodName} " +
+                        "at ${this.javaClass.name}")
+                return@acceptOrDeny
             }
 
             val embed = event.message.embeds.firstOrNull() ?: let {
-                sendMessageAndDeferReply(event, "Wrong message format.\n " +
-                        "Please, tell dummy programmers about that, and they will definitely fix that.")
-                return@acceptOrDeny //логгер
+                sendMessageAndDeferReply(
+                    event, "Wrong message format.\n " +
+                            "Please, tell dummy programmers about that, and they will definitely fix that."
+                )
+                globalLogger.error("Some troubles with confirmation message in ${Throwable().stackTrace[0].methodName} " +
+                        "at ${this.javaClass.name} (embed was not found)")
+                return@acceptOrDeny
             }
 
             val registeredMember = guild.getMemberByTag(embed.description.toString()) ?: let {
-                sendMessageAndDeferReply(event, "Wrong message format.\n " +
-                        "Please, tell dummy programmers about that, and they will definitely fix that.")
-                return@acceptOrDeny //логгер
+                sendMessageAndDeferReply(
+                    event, "Wrong message format.\n " +
+                            "Please, tell dummy programmers about that, and they will definitely fix that."
+                )
+                globalLogger.error("Some troubles with confirmation message in ${Throwable().stackTrace[0].methodName} " +
+                        "at ${this.javaClass.name} (member was not found in embed)")
+                return@acceptOrDeny
             }
 
             event.message.delete().queue()
@@ -100,8 +128,10 @@ class RegistrationBot : ListenerAdapter() {
                     listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
                 ).queue()
 
-                sendMessageAndDeferReply(event, "Accepted successfully!\n" +
-                        "Member ${registeredMember.asMention} is professor now.")
+                sendMessageAndDeferReply(
+                    event, "Accepted successfully!\n" +
+                            "Member ${registeredMember.asMention} is professor now."
+                )
             } else {
                 guild.modifyMemberRoles(
                     registeredMember,
@@ -109,9 +139,11 @@ class RegistrationBot : ListenerAdapter() {
                     listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
                 ).queue()
 
-                sendMessageAndDeferReply(event, "Denied successfully!\n" +
-                        "Member ${registeredMember.asMention} is pushed back into registration.\n" +
-                        "You can ban or kick him/her, if he/she continues doing this.")
+                sendMessageAndDeferReply(
+                    event, "Denied successfully!\n" +
+                            "Member ${registeredMember.asMention} is pushed back into registration.\n" +
+                            "You can ban or kick him/her, if he/she continues doing this."
+                )
             }
         }
 
@@ -123,7 +155,11 @@ class RegistrationBot : ListenerAdapter() {
                     .build()
 
                 val studentRegModal = Modal.create("student profile", "Setting student profile")
-                    .addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput), ActionRow.of(courseNumber))
+                    .addActionRows(
+                        ActionRow.of(surnameTextInput),
+                        ActionRow.of(nameTextInput),
+                        ActionRow.of(courseNumber)
+                    )
                     .build()
 
                 event.replyModal(studentRegModal).complete()
@@ -141,9 +177,11 @@ class RegistrationBot : ListenerAdapter() {
 
             "deny" -> acceptOrDeny(false)
         }
+
+        logButtonInteractionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
     }
 
-    private fun createConfirmationMessage(member: Member, name: String, surname:String): MessageEmbed {
+    private fun createConfirmationMessage(member: Member, name: String, surname: String): MessageEmbed {
         val messageForConfirmation = EmbedBuilder()
         messageForConfirmation.setDescription(member.user.asTag)
         messageForConfirmation.setTitle("Professor role confirmation")
@@ -159,13 +197,23 @@ class RegistrationBot : ListenerAdapter() {
         if (event.modalId !in listOf("student profile", "professor profile"))
             return
 
+        logModalInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.modalId)
+
         val member = event.member ?: return
         val guild = event.guild ?: return
 
         when (event.modalId) {
             "student profile" -> {
-                val surname = event.getValue("surname")?.asString ?: "Error" //логгер
-                val name = event.getValue("name")?.asString ?: "Error" //логгер
+                val surname = event.getValue("surname")?.asString ?: let {
+                    globalLogger.error("$GREEN Some troubles with entered surname in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
+                            "at $YELLOW ${this.javaClass.name} $RESET")
+                    "Error"
+                }
+                val name = event.getValue("name")?.asString ?: let {
+                    globalLogger.error("$GREEN Some troubles with entered name in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
+                            "at $YELLOW ${this.javaClass.name} $RESET")
+                    "Error"
+                }
                 val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull() //логгер
                 if (courseNumber == null || courseNumber !in 1..4) {
                     event.reply(
@@ -188,17 +236,25 @@ class RegistrationBot : ListenerAdapter() {
             }
 
             "professor profile" -> {
-                val surname = event.getValue("surname")?.asString ?: "Error"
-                val name = event.getValue("name")?.asString ?: "Error"
+                val surname = event.getValue("surname")?.asString ?: let {
+                    globalLogger.error("$GREEN Some troubles with entered surname in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
+                            "at $YELLOW ${this.javaClass.name} $RESET")
+                    "Error"
+                }
+                val name = event.getValue("name")?.asString ?: let {
+                    globalLogger.error("$GREEN Some troubles with entered name in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
+                            "at $YELLOW ${this.javaClass.name} $RESET")
+                    "Error"
+                }
                 member.modifyNickname("$surname $name".trim()).queue()
 
                 guild.modifyMemberRoles(member, listOf(professorConfirmationRole), listOf(registrationRole)).queue()
 
                 val channelConfirmation = getChannel(
                     Channels.PROFESSOR_CONFIRMATION.label,
-                    getCategory(Categories.ADMINISTRATION,guild)
+                    getCategory(Categories.ADMINISTRATION, guild)
                 )
-                
+
                 channelConfirmation.sendMessageEmbeds(
                     createConfirmationMessage(member, name, surname)
                 ).setActionRow(
@@ -206,9 +262,13 @@ class RegistrationBot : ListenerAdapter() {
                     Button.primary("deny", "Deny")
                 ).queue()
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Hello, $surname $name!\n Wait until " +
-                        "administration confirm your profile.").setEphemeral(true).complete()
+                event.hook.sendMessage(
+                    "Hello, $surname $name!\n Wait until " +
+                            "administration confirm your profile."
+                ).setEphemeral(true).complete()
             }
         }
+
+        logModalInteractionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name, event.modalId)
     }
 }

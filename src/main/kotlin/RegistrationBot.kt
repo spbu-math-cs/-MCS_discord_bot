@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
 import java.awt.Color
+import java.io.OutputStream
 
 class RegistrationBot : ListenerAdapter() {
     private lateinit var registrationRole: Role
@@ -63,6 +64,9 @@ class RegistrationBot : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
+
+        globalLogger.debug("Entered function ${Throwable().stackTrace[0].methodName}",System.out)
+
         if (event.componentId !in listOf("student", "professor", "accept", "deny"))
             return
 

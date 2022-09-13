@@ -16,6 +16,7 @@ dependencies {
     implementation("net.dv8tion:JDA:5.0.0-alpha.18")
     implementation("org.apache.logging.log4j:log4j-api:2.18.0")
     implementation ("org.apache.logging.log4j:log4j-core:2.18.0")
+    implementation("org.slf4j:slf4j-simple:1.6.1")
 }
 
 tasks.test {

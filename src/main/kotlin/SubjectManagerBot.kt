@@ -196,6 +196,11 @@ class SubjectManagerBot : ListenerAdapter() {
             }
         }
 
-        logModalInteractionLeave(Throwable().stackTrace[0].methodName,this.javaClass.name, event.modalId)
+        logModalInteractionLeave(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.modalId,
+            event.user.asTag
+        )
     }
 }

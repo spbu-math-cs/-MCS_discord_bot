@@ -103,7 +103,6 @@ class RegistrationBot : ListenerAdapter() {
                         "at ${this.javaClass.name}" + RESET)
                 return@acceptOrDeny
             }
-
             val embed = event.message.embeds.firstOrNull() ?: let {
                 sendMessageAndDeferReply(
                     event, "Wrong message format.\n " +

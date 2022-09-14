@@ -1,3 +1,6 @@
+import GlobalLogger.RED
+import GlobalLogger.RESET
+import GlobalLogger.globalLogger
 import net.dv8tion.jda.api.entities.Category
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.MessageHistory
@@ -19,12 +22,20 @@ object Utility: ListenerAdapter() {
 
     fun getRole(roleEnum: Roles, guild: Guild) : Role {
         return guild.getRolesByName(roleEnum.label, false).firstOrNull()
-            ?: throw Exception() //логгер
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Role '" + roleEnum.label + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
     }
 
     fun getCourseRole(courseNumber: Int, guild: Guild) : Role {
         return guild.getRolesByName(courses[courseNumber - 1], false).firstOrNull()
-            ?: throw Exception() //логгер
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Role 'СП " + courseNumber + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
     }
 
     enum class Categories(val label: String){
@@ -35,12 +46,20 @@ object Utility: ListenerAdapter() {
 
     fun getCategory(categoryEnum: Categories, guild: Guild): Category {
         return guild.getCategoriesByName(categoryEnum.label, false).firstOrNull()
-            ?: throw Exception() //логгер
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Category '" + categoryEnum.label + "' was not found! " +
+                            "Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
     }
 
     fun getCourseCategory(courseNumber: Int, guild: Guild) : Category {
         return guild.getCategoriesByName(courses[courseNumber - 1], false).firstOrNull()
-            ?: throw Exception() //логгер
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Category 'СП " + courseNumber + "' was not found! " +
+                            "Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
     }
 
     enum class Channels(val label: String) {
@@ -52,9 +71,13 @@ object Utility: ListenerAdapter() {
         CHAT("болталка")
     }
 
-    fun getChannel(channelName: String, category: Category): TextChannel {
-        return category.textChannels.find { it.name == channelName }
-            ?: throw Exception() //логгер
+    fun getChannel(channel: Channels, category: Category): TextChannel {
+        return category.textChannels.find { it.name == channel.label }
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Channel" + channel.label + "' was not found! " +
+                            "Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
     }
 
     //Очистка чата

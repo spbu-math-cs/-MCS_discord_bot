@@ -51,14 +51,14 @@ class ChannelListManager : ListenerAdapter() {
         guild = event.guild
         guild.channels.filterIsInstance<TextChannel>().forEach { it.manager.setName(normalizeChanelName(it.name)).queue() }
 
-        subjectListChannel = getChannel(Channels.COURSE_LIST.label, getCategory(Categories.COURSE_MANAGEMENT, guild))
+        subjectListChannel = getChannel(Channels.COURSE_LIST, getCategory(Categories.COURSE_MANAGEMENT, guild))
         sendMessage()
     }
 
     private fun checkAndCorrectChannelName(channel: TextChannel): Boolean {
         val correctName = normalizeChanelName(channel.name)
         channel.manager.setName(correctName).complete()
-        if (guild.channels.map { it.name }.count{ it == correctName } > 1)
+        if ((channel.parentCategory?.channels?.map { it.name }?.count { it == correctName } ?: 2) > 1)
             return false
         return true
     }

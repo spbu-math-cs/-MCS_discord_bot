@@ -1,3 +1,5 @@
+import GlobalLogger.RED
+import GlobalLogger.RESET
 import GlobalLogger.globalLogger
 import GlobalLogger.logButtonInteractionEnter
 import GlobalLogger.logButtonInteractionLeave
@@ -38,7 +40,7 @@ class SubjectManagerBot : ListenerAdapter() {
 
         val guild = event.guild
         val channelInteraction = getChannel(
-            Channels.COURSE_INTERACTION.label,
+            Channels.COURSE_INTERACTION,
             getCategory(Categories.COURSE_MANAGEMENT, guild)
         )
 
@@ -51,7 +53,7 @@ class SubjectManagerBot : ListenerAdapter() {
         channelInteraction.sendMessage(
             "Ознакомиться с полным списком курсов " +
                     "Вы можете в соседнем канале: " +
-                    getChannel(Channels.COURSE_LIST.label,
+                    getChannel(Channels.COURSE_LIST,
                         getCategory(Categories.COURSE_MANAGEMENT, guild)
                     ).asMention
         ).queue()
@@ -64,7 +66,12 @@ class SubjectManagerBot : ListenerAdapter() {
         if (event.componentId !in listOf("create", "join"))
             return
 
-        logButtonInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
+        logButtonInteractionEnter(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.componentId,
+            event.user.asTag
+        )
 
         val courseNumber = TextInput.create("courseNumber", "Course number", TextInputStyle.SHORT)
             .setRequiredRange(1, 1)
@@ -78,47 +85,69 @@ class SubjectManagerBot : ListenerAdapter() {
 
         when (event.componentId) {
             "create" -> {
-                val courseCreation = Modal.create("course create", "Course creation modal")
+                val subjectCreation = Modal.create("subject create", "Subject creation modal")
                     .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
                     .build()
 
-                event.replyModal(courseCreation).queue()
+                event.replyModal(subjectCreation).queue()
             }
 // Если введён не тот курс в reply дописать, что названия курсов можно найти там-то, там-то
             "join" -> {
-                val courseJoin = Modal.create("course join", "Course join modal")
+                val subjectJoin = Modal.create("subject join", "Subject join modal")
                     .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
                     .build()
 
-                event.replyModal(courseJoin).queue()
+                event.replyModal(subjectJoin).queue()
             }
         }
-        logButtonInteractionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
+        logButtonInteractionLeave(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.componentId,
+            event.user.asTag
+        )
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
-        if (event.modalId !in listOf("course create", "course join"))
+        if (event.modalId !in listOf("subject create", "subject join"))
             return
 
-        logModalInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.modalId)
+        logModalInteractionEnter(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.modalId,
+            event.user.asTag
+        )
 
         val member = event.member  ?: let {
             sendMessageAndDeferReply(
                 event, "Wrong accept confirmation: " +
-                        "there is no guild in processing event.\n " +
+                        "there is no member in processing event.\n " +
                         "Please, tell dummy programmers about that, and they will definitely fix that."
             )
-            globalLogger.error("Guild was not found in event in ${Throwable().stackTrace[0].methodName} " +
-                    "at ${this.javaClass.name}")
+            globalLogger.error(RED + "Member was not found in event " +
+                    "in ${Throwable().stackTrace[0].methodName} at ${this.javaClass.name}" + RESET)
             return@onModalInteraction
         }
-        val guild = event.guild ?: return //логгер
 
-        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull() //логгер
-        val subjectName = normalizeChanelName(event.getValue("subjectName")?.asString ?: "Error") //логгер
+        val guild = event.guild ?: return
+        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull()
+        val subjectName = normalizeChanelName(event.getValue("subjectName")?.asString
+            ?: let {
+                sendMessageAndDeferReply(
+                    event, "Wrong accept confirmation: " +
+                            "there is no subjectName in processing event.\n " +
+                            "Please, tell dummy programmers about that, and they will definitely fix that."
+                )
+                globalLogger.error(RED + "SubjectName was not found in event " +
+                        "in ${Throwable().stackTrace[0].methodName} at ${this.javaClass.name}" + RESET)
+                return@onModalInteraction
+            }
+        )
 
         if (courseNumber == null || courseNumber !in 1..4) {
-            event.reply(
+            event.deferReply(true).queue()
+            event.hook.sendMessage(
                 "Hi, you have entered wrong course number.\n " +
                         "It should be a number in range 1..4.\n" +
                         "Try again, please, or contact administration for help."
@@ -127,7 +156,7 @@ class SubjectManagerBot : ListenerAdapter() {
         }
 
         when (event.modalId) {
-            "course create" -> {
+            "subject create" -> {
                 val category = getCourseCategory(courseNumber, guild)
                 if (category.textChannels.map { it.name }.contains(subjectName)) {
                     event.deferReply(true).queue()
@@ -142,16 +171,16 @@ class SubjectManagerBot : ListenerAdapter() {
                 ).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Channel $subjectName was created successfully!")
+                event.hook.sendMessage("Subject $subjectName was created successfully!")
                     .setEphemeral(true).complete()
             }
 
-            "course join" -> {
+            "subject join" -> {
                 val category = getCourseCategory(courseNumber, guild)
                 val channel = category.textChannels.find { it.name == subjectName }
                 if (channel == null) {
                     event.deferReply(true).queue()
-                    event.hook.sendMessage("Problems with course name.")
+                    event.hook.sendMessage("Problems with subject name or course number.")
                         .setEphemeral(true).complete()
                     return
                 }

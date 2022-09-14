@@ -1,4 +1,5 @@
 import GlobalLogger.GREEN
+import GlobalLogger.RED
 import GlobalLogger.RESET
 import GlobalLogger.YELLOW
 import GlobalLogger.globalLogger
@@ -53,7 +54,7 @@ class RegistrationBot : ListenerAdapter() {
         professorRole = getRole(Roles.PROFESSOR, guild)
         professorConfirmationRole = getRole(Roles.PROFESSOR_CONFIRMATION, guild)
 
-        val channel = getChannel(Channels.REGISTRATION.label, getCategory(Categories.REGISTRATION, guild))
+        val channel = getChannel(Channels.REGISTRATION, getCategory(Categories.REGISTRATION, guild))
 
         clearChannel(channel)
 
@@ -83,18 +84,23 @@ class RegistrationBot : ListenerAdapter() {
         if (event.componentId !in listOf("student", "professor", "accept", "deny"))
             return
 
-        logButtonInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
+        logButtonInteractionEnter(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.componentId,
+            event.user.asTag
+        )
 
         fun acceptOrDeny(accept: Boolean) {
-
             val guild = event.guild ?: let {
                 sendMessageAndDeferReply(
                     event, "Wrong accept confirmation: " +
                             "there is no guild in processing event.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error("Guild was not found in event in ${Throwable().stackTrace[0].methodName} " +
-                        "at ${this.javaClass.name}")
+                globalLogger.error(RED + "Guild was not found in event " +
+                        "in ${Throwable().stackTrace[0].methodName} " +
+                        "at ${this.javaClass.name}" + RESET)
                 return@acceptOrDeny
             }
 
@@ -103,8 +109,9 @@ class RegistrationBot : ListenerAdapter() {
                     event, "Wrong message format.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error("Some troubles with confirmation message in ${Throwable().stackTrace[0].methodName} " +
-                        "at ${this.javaClass.name} (embed was not found)")
+                globalLogger.error(RED + "Some troubles with confirmation message + " +
+                        "in ${Throwable().stackTrace[0].methodName} " +
+                        "at ${this.javaClass.name} (embed was not found)" + RESET)
                 return@acceptOrDeny
             }
 
@@ -177,7 +184,12 @@ class RegistrationBot : ListenerAdapter() {
             "deny" -> acceptOrDeny(false)
         }
 
-        logButtonInteractionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name, event.componentId)
+        logButtonInteractionLeave(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.componentId,
+            event.user.asTag
+        )
     }
 
     private fun createConfirmationMessage(member: Member, name: String, surname: String): MessageEmbed {
@@ -196,26 +208,37 @@ class RegistrationBot : ListenerAdapter() {
         if (event.modalId !in listOf("student profile", "professor profile"))
             return
 
-        logModalInteractionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name, event.modalId)
+        logModalInteractionEnter(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.modalId,
+            event.user.asTag
+        )
 
         val member = event.member ?: return
         val guild = event.guild ?: return
+        val surname = event.getValue("surname")?.asString
+        val name = event.getValue("name")?.asString
+
+        if (name == null || surname == null) {
+            globalLogger.error("$GREEN Some troubles with entered name/surname " +
+                    "in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
+                    "at $YELLOW ${this.javaClass.name} $RESET")
+            event.deferReply(true).queue()
+            event.hook.sendMessage(
+                "Wrong registration processing. There is no name/surname in event.\n" +
+                        "Please, tell dummy programmers about that, and they will definitely fix that."
+            ).setEphemeral(true).complete()
+            return
+        }
 
         when (event.modalId) {
+
             "student profile" -> {
-                val surname = event.getValue("surname")?.asString ?: let {
-                    globalLogger.error("$GREEN Some troubles with entered surname in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
-                            "at $YELLOW ${this.javaClass.name} $RESET")
-                    "Error"
-                }
-                val name = event.getValue("name")?.asString ?: let {
-                    globalLogger.error("$GREEN Some troubles with entered name in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
-                            "at $YELLOW ${this.javaClass.name} $RESET")
-                    "Error"
-                }
-                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull() //логгер
+                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull()
                 if (courseNumber == null || courseNumber !in 1..4) {
-                    event.reply(
+                    event.deferReply(true).queue()
+                    event.hook.sendMessage(
                         "Hi, you have entered wrong course number.\n " +
                                 "It should be a number in range 1..4.\n" +
                                 "Try again, please, or contact administration for help."
@@ -235,22 +258,12 @@ class RegistrationBot : ListenerAdapter() {
             }
 
             "professor profile" -> {
-                val surname = event.getValue("surname")?.asString ?: let {
-                    globalLogger.error("$GREEN Some troubles with entered surname in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
-                            "at $YELLOW ${this.javaClass.name} $RESET")
-                    "Error"
-                }
-                val name = event.getValue("name")?.asString ?: let {
-                    globalLogger.error("$GREEN Some troubles with entered name in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
-                            "at $YELLOW ${this.javaClass.name} $RESET")
-                    "Error"
-                }
                 member.modifyNickname("$surname $name".trim()).queue()
 
                 guild.modifyMemberRoles(member, listOf(professorConfirmationRole), listOf(registrationRole)).queue()
 
                 val channelConfirmation = getChannel(
-                    Channels.PROFESSOR_CONFIRMATION.label,
+                    Channels.PROFESSOR_CONFIRMATION,
                     getCategory(Categories.ADMINISTRATION, guild)
                 )
 
@@ -268,6 +281,11 @@ class RegistrationBot : ListenerAdapter() {
             }
         }
 
-        logModalInteractionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name, event.modalId)
+        logModalInteractionLeave(
+            Throwable().stackTrace[0].methodName,
+            this.javaClass.name,
+            event.modalId,
+            event.user.asTag
+        )
     }
 }

@@ -1,7 +1,7 @@
 import Utility.Channels
 import Utility.Categories
+import Utility.clearAndSendMessage
 import Utility.getChannel
-import Utility.clearChannel
 import Utility.courses
 import Utility.getCategory
 import Utility.getCourseCategory
@@ -14,7 +14,16 @@ import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class ChannelListManager : ListenerAdapter() {
-    private fun channelListSetup(guild: Guild): String {
+    private fun getSpecialSubjectsList(guild: Guild): String {
+        val subjectList: StringBuilder = StringBuilder("Спецкурсы:\n")
+        val category = getCategory(Categories.SPECIAL_SUBJECTS, guild)
+        category.textChannels.filter {
+            it.name != Channels.SPECIAL_SUBJECT_LIST.label && it.name != Channels.SPECIAL_SUBJECT_JOIN.label
+        }.forEach { subjectList.append("\t\t${it.asMention}\n") }
+        return subjectList.toString()
+    }
+
+    private fun getChannelList(guild: Guild): String {
         val channelList: StringBuilder = StringBuilder("")
         courses.forEachIndexed { i, label ->
             channelList.append("$label:\n")
@@ -24,35 +33,26 @@ class ChannelListManager : ListenerAdapter() {
             }.forEach { channelList.append("\t\t${it.asMention}\n") }
         }
 
+        channelList.append(getSpecialSubjectsList(guild))
         return channelList.toString()
     }
 
     private lateinit var subjectListChannel: TextChannel
+    private lateinit var specialSubjectListChannel: TextChannel
     private lateinit var guild: Guild
-
-    private fun sendMessage() {
-        val messages = MessageHistory(subjectListChannel).retrievePast(100).complete()
-        when (messages.size) {
-            0 -> subjectListChannel.sendMessage(channelListSetup(guild)).queue()
-            1 -> {
-                subjectListChannel.sendMessage("delete").complete()
-                clearChannel(subjectListChannel)
-                subjectListChannel.sendMessage(channelListSetup(guild)).queue()
-            }
-            else -> {
-                clearChannel(subjectListChannel)
-                subjectListChannel.sendMessage(channelListSetup(guild)).queue()
-            }
-        }
-    }
-
 
     override fun onGuildReady(event: GuildReadyEvent) {
         guild = event.guild
-        guild.channels.filterIsInstance<TextChannel>().forEach { it.manager.setName(normalizeChanelName(it.name)).queue() }
+        guild.channels.filterIsInstance<TextChannel>().forEach {
+            it.manager.setName(normalizeChanelName(it.name)).queue()
+        }
 
-        subjectListChannel = getChannel(Channels.COURSE_LIST, getCategory(Categories.COURSE_MANAGEMENT, guild))
-        sendMessage()
+        subjectListChannel = getChannel(Channels.SUBJECT_LIST, getCategory(Categories.COURSE_MANAGEMENT, guild))
+        clearAndSendMessage(subjectListChannel, getChannelList(guild))
+
+        specialSubjectListChannel =
+            getChannel(Channels.SPECIAL_SUBJECT_LIST, getCategory(Categories.SPECIAL_SUBJECTS, guild))
+        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
     }
 
     private fun checkAndCorrectChannelName(channel: TextChannel): Boolean {
@@ -69,11 +69,13 @@ class ChannelListManager : ListenerAdapter() {
             return
         if (!checkAndCorrectChannelName(channel))
             channel.delete().complete()
-        sendMessage()
+        clearAndSendMessage(subjectListChannel, getChannelList(guild))
+        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
     }
 
     override fun onChannelDelete(event: ChannelDeleteEvent) {
-        sendMessage()
+        clearAndSendMessage(subjectListChannel, getChannelList(guild))
+        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
     }
 
     override fun onChannelUpdateName(event: ChannelUpdateNameEvent) {
@@ -82,6 +84,7 @@ class ChannelListManager : ListenerAdapter() {
             return
         if (!checkAndCorrectChannelName(channel))
             event.oldValue?.let { channel.manager.setName(it).complete() }
-        sendMessage()
+        clearAndSendMessage(subjectListChannel, getChannelList(guild))
+        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
     }
 }

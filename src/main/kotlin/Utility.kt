@@ -41,7 +41,8 @@ object Utility: ListenerAdapter() {
     enum class Categories(val label: String){
         REGISTRATION("Регистрация"),
         ADMINISTRATION("Администрация"),
-        COURSE_MANAGEMENT("Управление курсами")
+        COURSE_MANAGEMENT("Управление курсами"),
+        SPECIAL_SUBJECTS("Спецкурсы")
     }
 
     fun getCategory(categoryEnum: Categories, guild: Guild): Category {
@@ -65,10 +66,12 @@ object Utility: ListenerAdapter() {
     enum class Channels(val label: String) {
         REGISTRATION("регистрация"),
         PROFESSOR_CONFIRMATION("подтверждение_роли"),
-        COURSE_LIST("список_курсов"),
-        COURSE_INTERACTION("взаимодействие_с_курсами"),
+        SUBJECT_LIST("список_курсов"),
+        SUBJECT_INTERACTION("взаимодействие_с_курсами"),
         INFO("стойка_информации_и_полезные_ссылки"),
-        CHAT("болталка")
+        CHAT("болталка"),
+        SPECIAL_SUBJECT_JOIN("присоединение_к_спецкурсам"),
+        SPECIAL_SUBJECT_LIST("список_спецкурсов")
     }
 
     fun getChannel(channel: Channels, category: Category): TextChannel {
@@ -87,11 +90,20 @@ object Utility: ListenerAdapter() {
         val history = MessageHistory(channel)
         while (deletingFlag) {
             val messages = history.retrievePast(30).complete()
-            if (messages.size > 1)
-                channel.deleteMessages(messages).queue()
-            else
-                deletingFlag = false
+            when (messages.size) {
+                0 -> deletingFlag = false
+                1 -> {
+                    deletingFlag = false
+                    messages[0].delete().complete()
+                }
+                else -> channel.deleteMessages(messages).queue()
+            }
         }
+    }
+
+    fun clearAndSendMessage(channel: TextChannel, message: String) {
+        clearChannel(channel)
+        channel.sendMessage(message).queue()
     }
 
     fun normalizeChanelName(name: String): String {

@@ -9,6 +9,7 @@ import GlobalLogger.logModalInteractionEnter
 import GlobalLogger.logModalInteractionLeave
 import Utility.clearChannel
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Category
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -21,7 +22,6 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import Utility.Channels
 import Utility.Categories
 import Utility.getChannel
-import Utility.courses
 import Utility.getCategory
 import Utility.getCourseCategory
 import Utility.normalizeChanelName
@@ -30,8 +30,9 @@ import Utility.sendMessageAndDeferReply
 class SubjectManagerBot : ListenerAdapter() {
     private fun sendCreateAndJoin(): List<Button> {
         val buttons: MutableList<Button> = mutableListOf()
-        buttons.add(Button.primary("create", "Создать"))
-        buttons.add(Button.primary("join", "Присоединиться"))
+        buttons.add(Button.primary("createCompulsorySubject", "Создать обязательный курс"))
+        buttons.add(Button.primary("createSpecialSubject", "Создать спецкурс"))
+        buttons.add(Button.primary("professor_join", "Присоединиться"))
         return buttons
     }
 
@@ -40,7 +41,7 @@ class SubjectManagerBot : ListenerAdapter() {
 
         val guild = event.guild
         val channelInteraction = getChannel(
-            Channels.COURSE_INTERACTION,
+            Channels.SUBJECT_INTERACTION,
             getCategory(Categories.COURSE_MANAGEMENT, guild)
         )
 
@@ -53,18 +54,37 @@ class SubjectManagerBot : ListenerAdapter() {
         channelInteraction.sendMessage(
             "Ознакомиться с полным списком курсов " +
                     "Вы можете в соседнем канале: " +
-                    getChannel(Channels.COURSE_LIST,
+                    getChannel(Channels.SUBJECT_LIST,
                         getCategory(Categories.COURSE_MANAGEMENT, guild)
                     ).asMention
         ).queue()
         channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
 
+        val channelSpecialSubjectJoin = getChannel(
+            Channels.SPECIAL_SUBJECT_JOIN,
+            getCategory(Categories.SPECIAL_SUBJECTS, guild)
+        )
+
+        clearChannel(channelSpecialSubjectJoin)
+
+        channelSpecialSubjectJoin.sendMessage(
+            "Этот чат предназначен для присоединения к спецкурсам. Их список вы можете посмотерть тут:" +
+                    getChannel(Channels.SUBJECT_LIST,
+                        getCategory(Categories.COURSE_MANAGEMENT, guild)
+                    ).asMention
+        ).setActionRow(Button.primary("student_join", "Присоединиться")).queue()
+
         logFunctionLeave(Throwable().stackTrace[0].methodName,this.javaClass.name)
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        if (event.componentId !in listOf("create", "join"))
-            return
+        if (event.componentId !in listOf(
+                "createCompulsorySubject",
+                "createSpecialSubject",
+                "professor_join",
+                "student_join"
+            )
+        ) return
 
         logButtonInteractionEnter(
             Throwable().stackTrace[0].methodName,
@@ -84,17 +104,32 @@ class SubjectManagerBot : ListenerAdapter() {
             .build()
 
         when (event.componentId) {
-            "create" -> {
-                val subjectCreation = Modal.create("subject create", "Subject creation modal")
+            "createCompulsorySubject" -> {
+                val compulsorySubjectCreation = Modal.create(
+                    "compulsory subject create",
+                    "Compulsory subject creation modal"
+                ).addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName)).build()
+
+                event.replyModal(compulsorySubjectCreation).queue()
+            }
+            "createSpecialSubject" -> {
+                val specialSubjectCreation = Modal.create(
+                    "special subject create",
+                    "Special subject creation modal"
+                ).addActionRows(ActionRow.of(subjectName)).build()
+
+                event.replyModal(specialSubjectCreation).queue()
+            }
+            "professor_join" -> {
+                val subjectJoin = Modal.create("professor subject join", "Professor subject join modal")
                     .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
                     .build()
 
-                event.replyModal(subjectCreation).queue()
+                event.replyModal(subjectJoin).queue()
             }
-// Если введён не тот курс в reply дописать, что названия курсов можно найти там-то, там-то
-            "join" -> {
-                val subjectJoin = Modal.create("subject join", "Subject join modal")
-                    .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
+            "student_join" -> {
+                val subjectJoin = Modal.create("student subject join", "Student subject join modal")
+                    .addActionRows(ActionRow.of(subjectName))
                     .build()
 
                 event.replyModal(subjectJoin).queue()
@@ -109,8 +144,13 @@ class SubjectManagerBot : ListenerAdapter() {
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
-        if (event.modalId !in listOf("subject create", "subject join"))
-            return
+        if (event.modalId !in listOf(
+                "compulsory subject create",
+                "special subject create",
+                "professor subject join",
+                "student subject join"
+            )
+        ) return
 
         logModalInteractionEnter(
             Throwable().stackTrace[0].methodName,
@@ -131,7 +171,6 @@ class SubjectManagerBot : ListenerAdapter() {
         }
 
         val guild = event.guild ?: return
-        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull()
         val subjectName = normalizeChanelName(event.getValue("subjectName")?.asString
             ?: let {
                 sendMessageAndDeferReply(
@@ -145,6 +184,54 @@ class SubjectManagerBot : ListenerAdapter() {
             }
         )
 
+        fun createSubjectChannel(category: Category) {
+            if (category.textChannels.map { it.name }.contains(subjectName)) {
+                event.deferReply(true).queue()
+                event.hook.sendMessage("Channel with this name already exists. Join it instead of creating.")
+                    .setEphemeral(true).complete()
+                return
+            }
+            category.createTextChannel(subjectName).addMemberPermissionOverride(
+                member.idLong, mutableListOf(
+                    Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
+                ),
+                null
+            ).queue()
+
+            event.deferReply(true).queue()
+            event.hook.sendMessage("Subject $subjectName was created successfully!")
+                .setEphemeral(true).complete()
+        }
+
+        val specialSubjectsCategory = getCategory(Categories.SPECIAL_SUBJECTS, guild)
+        when(event.modalId) {
+            "special subject create" -> {
+                createSubjectChannel(specialSubjectsCategory)
+                return
+            }
+            "student subject join" -> {
+                val channel = specialSubjectsCategory.textChannels.find { it.name == subjectName } ?: let {
+                    event.deferReply(true).queue()
+                    event.hook.sendMessage("Special subject with entered name is not exists.\n" +
+                            "Check it and try again. You can find list of all subjects here:" +
+                            getChannel(Channels.SUBJECT_LIST,
+                                getCategory(Categories.COURSE_MANAGEMENT, guild)
+                            ).asMention
+                    ).setEphemeral(true).complete()
+                    return@onModalInteraction
+                }
+                channel.manager.putMemberPermissionOverride(
+                    member.idLong, mutableListOf(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND), null
+                ).queue()
+
+                event.deferReply(true).queue()
+                event.hook.sendMessage("Channel $subjectName was updated successfully!")
+                    .setEphemeral(true).complete()
+                return
+            }
+        }
+
+        val courseNumber = event.getValue("courseNumber")?.asString?.toIntOrNull()
         if (courseNumber == null || courseNumber !in 1..4) {
             event.deferReply(true).queue()
             event.hook.sendMessage(
@@ -156,33 +243,16 @@ class SubjectManagerBot : ListenerAdapter() {
         }
 
         when (event.modalId) {
-            "subject create" -> {
-                val category = getCourseCategory(courseNumber, guild)
-                if (category.textChannels.map { it.name }.contains(subjectName)) {
-                    event.deferReply(true).queue()
-                    event.hook.sendMessage("Channel with this name already exists. Join it instead of creating.")
-                        .setEphemeral(true).complete()
-                    return
-                }
-                category.createTextChannel(subjectName).addMemberPermissionOverride(
-                    member.idLong, mutableListOf(
-                        Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
-                    ), null
-                ).queue()
+            "compulsory subject create" ->
+                createSubjectChannel(getCourseCategory(courseNumber, guild))
 
-                event.deferReply(true).queue()
-                event.hook.sendMessage("Subject $subjectName was created successfully!")
-                    .setEphemeral(true).complete()
-            }
-
-            "subject join" -> {
+            "professor subject join" -> {
                 val category = getCourseCategory(courseNumber, guild)
-                val channel = category.textChannels.find { it.name == subjectName }
-                if (channel == null) {
+                val channel = category.textChannels.find { it.name == subjectName } ?: let {
                     event.deferReply(true).queue()
                     event.hook.sendMessage("Problems with subject name or course number.")
                         .setEphemeral(true).complete()
-                    return
+                    return@onModalInteraction
                 }
                 channel.manager.putMemberPermissionOverride(
                     member.idLong, mutableListOf(
@@ -192,7 +262,8 @@ class SubjectManagerBot : ListenerAdapter() {
 
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Channel $subjectName was updated successfully!\n " +
-                        "Check ${courses[courseNumber - 1]} category.").setEphemeral(true).complete()
+                        "Check ${getCourseCategory(courseNumber - 1, guild).asMention} " +
+                        "category.").setEphemeral(true).complete()
             }
         }
 

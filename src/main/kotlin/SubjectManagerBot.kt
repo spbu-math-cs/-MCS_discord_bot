@@ -37,7 +37,7 @@ class SubjectManagerBot : ListenerAdapter() {
     }
 
     override fun onGuildReady(event: GuildReadyEvent) {
-        logFunctionEnter(Throwable().stackTrace[0].methodName,this.javaClass.name)
+        logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
         val guild = event.guild
         val channelInteraction = getChannel(

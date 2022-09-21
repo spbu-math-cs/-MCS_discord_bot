@@ -71,7 +71,8 @@ object Utility: ListenerAdapter() {
         INFO("стойка_информации_и_полезные_ссылки"),
         CHAT("болталка"),
         SPECIAL_SUBJECT_JOIN("присоединение_к_спецкурсам"),
-        SPECIAL_SUBJECT_LIST("список_спецкурсов")
+        SPECIAL_SUBJECT_LIST("список_спецкурсов"),
+        INVITE_GENERATOR("генератор_ссылок")
     }
 
     fun getChannel(channel: Channels, category: Category): TextChannel {

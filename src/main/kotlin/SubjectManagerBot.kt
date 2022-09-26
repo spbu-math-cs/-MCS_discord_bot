@@ -69,8 +69,8 @@ class SubjectManagerBot : ListenerAdapter() {
 
         channelSpecialSubjectJoin.sendMessage(
             "Этот чат предназначен для присоединения к спецкурсам. Их список вы можете посмотерть тут:" +
-                    getChannel(Channels.SUBJECT_LIST,
-                        getCategory(Categories.COURSE_MANAGEMENT, guild)
+                    getChannel(Channels.SPECIAL_SUBJECT_LIST,
+                        getCategory(Categories.SPECIAL_SUBJECTS, guild)
                     ).asMention
         ).setActionRow(Button.primary("student_join", "Присоединиться")).queue()
 

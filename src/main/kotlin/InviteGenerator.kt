@@ -22,7 +22,7 @@ class InviteGenerator : ListenerAdapter() {
         inviteGeneratorChannel.sendMessage("Ссылка на актуальное одноразовое приглашение. " +
                 "Не забудьте обновить её, нажав на кнопку 'Обновить приглашение' повторно, " +
                 "после того как отправили это кому-нибудь:\n" +
-                registrationChannel.createInvite().setMaxUses(1).setUnique(true).complete().url
+                registrationChannel.createInvite().setMaxUses(1).setMaxAge(7 * 24 * 60 * 60).setUnique(true).complete().url
         ).queue()
     }
 

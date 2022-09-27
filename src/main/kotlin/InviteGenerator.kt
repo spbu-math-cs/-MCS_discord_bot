@@ -43,10 +43,11 @@ class InviteGenerator : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
         if (event.componentId != "update_invite")
             return
+
+        logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
         val messages = MessageHistory(inviteGeneratorChannel).retrievePast(1).complete()
         messages[0].delete().queue()

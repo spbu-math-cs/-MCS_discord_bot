@@ -2,6 +2,8 @@ import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.message.ParameterizedMessageFactory
 import org.apache.logging.log4j.simple.SimpleLogger
 import org.apache.logging.log4j.util.PropertiesUtil
+import java.io.File
+import java.io.PrintStream
 
 object GlobalLogger{
     const val RESET: String = "\u001B[0m"
@@ -18,7 +20,7 @@ object GlobalLogger{
         "yyyy-MM-dd HH:mm:ss:SSS",
         ParameterizedMessageFactory.INSTANCE,
         PropertiesUtil(""),
-        System.out
+        PrintStream( File("src/main/kotlin/log.txt"))
     )
 
     fun logFunctionEnter(functionName: String, className: String) {

@@ -1,0 +1,4 @@
+2022-09-29 21:31:07:995 DEBUG Global [32mEntered [33monGuildReady[32m at [33mSubjectManagerBot[0m
+2022-09-29 21:31:08:959 DEBUG Global [32mLeft [33monGuildReady[32m at [33mSubjectManagerBot[0m
+2022-09-29 21:31:11:135 DEBUG Global [32mEntered [33monGuildReady[32m at [33mInviteGenerator[0m
+2022-09-29 21:31:11:973 DEBUG Global [32mLeft [33monGuildReady[32m at [33mInviteGenerator[0m

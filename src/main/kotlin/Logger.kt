@@ -11,8 +11,6 @@ object GlobalLogger{
     const val GREEN: String = "\u001B[32m"
     const val YELLOW: String = "\u001B[33m"
 
-    var logFile: String = "src/main/kotlin/log.txt"
-
     val globalLogger = SimpleLogger(
         "Global", Level.TRACE,
         true,
@@ -22,7 +20,7 @@ object GlobalLogger{
         "yyyy-MM-dd HH:mm:ss:SSS",
         ParameterizedMessageFactory.INSTANCE,
         PropertiesUtil(""),
-        PrintStream(File(logFile))
+        PrintStream( File("src/main/kotlin/log.txt"))
     )
 
     fun logFunctionEnter(functionName: String, className: String) {

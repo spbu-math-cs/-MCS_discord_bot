@@ -78,7 +78,7 @@ object Utility: ListenerAdapter() {
     fun getChannel(channel: Channels, category: Category): TextChannel {
         return category.textChannels.find { it.name == channel.label }
             ?: let {
-                globalLogger.error(RED + "ALARM!!! Channel" + channel.label + "' was not found! " +
+                globalLogger.error(RED + "ALARM!!! Channel '" + channel.label + "' was not found! " +
                             "Fix this immediately, or everything will fall down!" + RESET)
                 throw Exception()
             }

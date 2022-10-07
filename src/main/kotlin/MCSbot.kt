@@ -9,6 +9,10 @@ fun main(args: Array<String>) {
         return
     }
 
+    if (args.size > 1) {
+        GlobalLogger.logFile = args[1]
+    }
+
     val jda = JDABuilder.create(
         args[0],
         GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS)

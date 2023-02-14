@@ -20,6 +20,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import Utility.Channels
+import Utility.StudyDirection
 import Utility.Categories
 import Utility.getChannel
 import Utility.getCategory
@@ -61,7 +62,7 @@ class SubjectManagerBot : ListenerAdapter() {
         channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
 
         val channelSpecialSubjectJoin = getChannel(
-            Channels.SPECIAL_SUBJECT_JOIN,
+            Channels.SUBJECT_JOIN,
             getCategory(Categories.SPECIAL_SUBJECTS, guild)
         )
 
@@ -244,10 +245,10 @@ class SubjectManagerBot : ListenerAdapter() {
 
         when (event.modalId) {
             "compulsory subject create" ->
-                createSubjectChannel(getCourseCategory(courseNumber, guild))
+                createSubjectChannel(getCourseCategory(StudyDirection.MODERN_PROGRAMMING, courseNumber, guild))
 
             "professor subject join" -> {
-                val category = getCourseCategory(courseNumber, guild)
+                val category = getCourseCategory(StudyDirection.MODERN_PROGRAMMING, courseNumber, guild)
                 val channel = category.textChannels.find { it.name == subjectName } ?: let {
                     event.deferReply(true).queue()
                     event.hook.sendMessage("Problems with subject name or course number.")
@@ -262,8 +263,7 @@ class SubjectManagerBot : ListenerAdapter() {
 
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Channel $subjectName was updated successfully!\n " +
-                        "Check ${getCourseCategory(courseNumber - 1, guild).asMention} " +
-                        "category.").setEphemeral(true).complete()
+                        "Check ${category.asMention} category.").setEphemeral(true).complete()
             }
         }
 

@@ -21,7 +21,8 @@ import GlobalLogger.logFunctionLeave
 import GlobalLogger.logModalInteractionEnter
 import GlobalLogger.logModalInteractionLeave
 import Utility.clearChannel
-import Utility.Roles
+import Utility.StudyDirection
+import Utility.GuildRole
 import Utility.Channels
 import Utility.Categories
 import Utility.getCategory
@@ -50,9 +51,9 @@ class RegistrationBot : ListenerAdapter() {
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
 
-        registrationRole = getRole(Roles.REGISTRATION, guild)
-        professorRole = getRole(Roles.PROFESSOR, guild)
-        professorConfirmationRole = getRole(Roles.PROFESSOR_CONFIRMATION, guild)
+        registrationRole = getRole(GuildRole.REGISTRATION, guild)
+        professorRole = getRole(GuildRole.PROFESSOR, guild)
+        professorConfirmationRole = getRole(GuildRole.PROFESSOR_CONFIRMATION, guild)
 
         val channel = getChannel(Channels.REGISTRATION, getCategory(Categories.REGISTRATION, guild))
 
@@ -68,7 +69,7 @@ class RegistrationBot : ListenerAdapter() {
     override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
         logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
-        event.guild.addRoleToMember(event.member, getRole(Roles.REGISTRATION, event.guild)).queue()
+        event.guild.addRoleToMember(event.member, getRole(GuildRole.REGISTRATION, event.guild)).queue()
 
         logFunctionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name)
     }
@@ -129,8 +130,8 @@ class RegistrationBot : ListenerAdapter() {
             if (accept) {
                 guild.modifyMemberRoles(
                     registeredMember,
-                    listOf(getRole(Roles.PROFESSOR, guild)),
-                    listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
+                    listOf(getRole(GuildRole.PROFESSOR, guild)),
+                    listOf(getRole(GuildRole.PROFESSOR_CONFIRMATION, guild))
                 ).queue()
 
                 sendMessageAndDeferReply(
@@ -140,8 +141,8 @@ class RegistrationBot : ListenerAdapter() {
             } else {
                 guild.modifyMemberRoles(
                     registeredMember,
-                    listOf(getRole(Roles.REGISTRATION, guild)),
-                    listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
+                    listOf(getRole(GuildRole.REGISTRATION, guild)),
+                    listOf(getRole(GuildRole.PROFESSOR_CONFIRMATION, guild))
                 ).queue()
 
                 sendMessageAndDeferReply(
@@ -245,7 +246,7 @@ class RegistrationBot : ListenerAdapter() {
                     return
                 }
 
-                val chosenRole = Utility.getCourseRole(courseNumber, guild)
+                val chosenRole = Utility.getCourseRole(StudyDirection.MODERN_PROGRAMMING, courseNumber, guild)
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }

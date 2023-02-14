@@ -2,9 +2,7 @@ import Utility.Channels
 import Utility.Categories
 import Utility.clearAndSendMessage
 import Utility.getChannel
-import Utility.courses
 import Utility.getCategory
-import Utility.getCourseCategory
 import Utility.normalizeChanelName
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
@@ -18,22 +16,14 @@ class ChannelListManager : ListenerAdapter() {
         val subjectList: StringBuilder = StringBuilder("Спецкурсы:\n")
         val category = getCategory(Categories.SPECIAL_SUBJECTS, guild)
         category.textChannels.filter {
-            it.name != Channels.SPECIAL_SUBJECT_LIST.label && it.name != Channels.SPECIAL_SUBJECT_JOIN.label
+            it.name != Channels.SPECIAL_SUBJECT_LIST.label && it.name != Channels.SUBJECT_JOIN.label
         }.forEach { subjectList.append("\t\t${it.asMention}\n") }
         return subjectList.toString()
     }
 
     private fun getChannelList(guild: Guild): String {
         val channelList: StringBuilder = StringBuilder("")
-        courses.forEachIndexed { i, label ->
-            channelList.append("$label:\n")
-            val category = getCourseCategory(i + 1, guild)
-            category.textChannels.filter {
-                it.name != Channels.CHAT.label && it.name != Channels.INFO.label
-            }.forEach { channelList.append("\t\t${it.asMention}\n") }
-        }
-
-        channelList.append(getSpecialSubjectsList(guild))
+        //TODO ("Строить список курсов адекватно новой архитектуре")
         return channelList.toString()
     }
 

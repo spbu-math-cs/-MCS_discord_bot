@@ -20,7 +20,7 @@ object GlobalLogger{
         "yyyy-MM-dd HH:mm:ss:SSS",
         ParameterizedMessageFactory.INSTANCE,
         PropertiesUtil(""),
-        PrintStream( File("src/main/kotlin/log.txt"))
+        PrintStream(File("mknbot.log"))
     )
 
     fun logFunctionEnter(functionName: String, className: String) {

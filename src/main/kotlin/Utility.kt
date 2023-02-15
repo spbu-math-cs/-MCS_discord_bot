@@ -6,9 +6,13 @@ import net.dv8tion.jda.api.events.Event
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import java.time.LocalDateTime
+import java.time.Month
 
 
 object Utility: ListenerAdapter() {
+    fun Boolean.toInt() = if (this) 1 else 0
+
     enum class GuildRole(val label: String) {
         REGISTRATION("Регистрация"),
         PROFESSOR("Преподаватель"),
@@ -16,7 +20,7 @@ object Utility: ListenerAdapter() {
     }
 
     enum class StudyDirection(val label: String) {
-        MATHEMATICS("Математика"),
+        MATHEMATICS("М"),
         DATA_SCIENCE("НОД"),
         MODERN_PROGRAMMING("СП")
     }
@@ -30,8 +34,12 @@ object Utility: ListenerAdapter() {
             }
     }
 
-    private fun getNumberedCourseName(studyDirection: StudyDirection, courseNumber: Int) : String =
-        studyDirection.label + ' ' + courseNumber.toString()
+    private fun getNumberedCourseName(studyDirection: StudyDirection, courseNumber: Int) : String {
+        val yearOfAcceptance = LocalDateTime.now().year - courseNumber
+        val isFirstHalfOfTheYear = (LocalDateTime.now().month < Month.JULY).toInt()
+        return "${studyDirection.label} ${yearOfAcceptance - isFirstHalfOfTheYear}-" +
+                "${yearOfAcceptance + 1 - isFirstHalfOfTheYear}"
+    }
 
     fun getCourseRole(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Role {
         return guild.getRolesByName(getNumberedCourseName(studyDirection, courseNumber), false).firstOrNull()
@@ -45,8 +53,8 @@ object Utility: ListenerAdapter() {
     enum class Categories(val label: String){
         REGISTRATION("Регистрация"),
         ADMINISTRATION("Администрация"),
-        COURSE_MANAGEMENT("Управление курсами"),
-        SPECIAL_SUBJECTS("Спецкурсы")
+        SUBJECT_MANAGEMENT("Управление курсами"),
+        SUBJECTS("Учебные курсы"),
     }
 
     fun getCategory(categoryEnum: Categories, guild: Guild): Category {
@@ -71,11 +79,10 @@ object Utility: ListenerAdapter() {
         REGISTRATION("регистрация"),
         PROFESSOR_CONFIRMATION("подтверждение_роли"),
         SUBJECT_LIST("список_курсов"),
-        SUBJECT_INTERACTION("взаимодействие_с_курсами"),
         INFO("стойка_информации_и_полезные_ссылки"),
         CHAT("болталка"),
-        SUBJECT_JOIN("присоединение_к_курсам"),
-        SPECIAL_SUBJECT_LIST("список_спецкурсов"),
+        SUBJECT_JOINING("присоединение_к_курсам"),
+        SUBJECT_CREATION("создание_курсов"),
         INVITE_GENERATOR("генератор_ссылок")
     }
 

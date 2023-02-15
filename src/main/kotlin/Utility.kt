@@ -22,7 +22,11 @@ object Utility: ListenerAdapter() {
     enum class StudyDirection(val label: String) {
         MATHEMATICS("М"),
         DATA_SCIENCE("НОД"),
-        MODERN_PROGRAMMING("СП")
+        MODERN_PROGRAMMING("СП");
+        companion object {
+            private val map = values().associateBy { it.label }
+            operator fun get(label: String) = map[label]
+        }
     }
 
     fun getRole(roleEnum: GuildRole, guild: Guild) : Role {

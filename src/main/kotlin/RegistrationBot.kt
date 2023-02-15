@@ -61,7 +61,7 @@ class RegistrationBot : ListenerAdapter() {
 
         channel.sendMessage(
             "Рады приветствовать вас на официальном " +
-                    "сервере программы Современное Программирование!"
+                    "сервере факультета Математики и Компьютерных Наук!"
         ).queue()
         channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).complete()
     }
@@ -160,10 +160,16 @@ class RegistrationBot : ListenerAdapter() {
                     .setPlaceholder("1")
                     .build()
 
+                val directionName = TextInput.create("directionName", "directionName", TextInputStyle.SHORT)
+                    .setRequiredRange(1, 3)
+                    .setPlaceholder("М, НОД или СП (в любом регистре)")
+                    .build()
+
                 val studentRegModal = Modal.create("student profile", "Setting student profile")
                     .addActionRows(
                         ActionRow.of(surnameTextInput),
                         ActionRow.of(nameTextInput),
+                        ActionRow.of(directionName),
                         ActionRow.of(courseNumber)
                     )
                     .build()
@@ -235,8 +241,8 @@ class RegistrationBot : ListenerAdapter() {
         when (event.modalId) {
 
             "student profile" -> {
-                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull()
-                if (courseNumber == null || courseNumber !in 1..4) {
+                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull() ?: 0
+                if (courseNumber !in 1..4) {
                     event.deferReply(true).queue()
                     event.hook.sendMessage(
                         "Hi, you have entered wrong course number.\n " +
@@ -246,7 +252,20 @@ class RegistrationBot : ListenerAdapter() {
                     return
                 }
 
-                val chosenRole = Utility.getCourseRole(StudyDirection.MODERN_PROGRAMMING, courseNumber, guild)
+                val studyDirection = StudyDirection[event.getValue("courseNumber")?.asString?.trim()?.uppercase() ?: ""]
+                    ?: let {
+                    event.deferReply(true).queue()
+                    event.hook.sendMessage(
+                        "Hi, you have entered wrong study direction.\n " +
+                                "It should be one of СП, НОД, М.\n" +
+                                "Try again, please, or contact administration for help."
+                    ).setEphemeral(true).complete()
+                    return@onModalInteraction
+                }
+
+
+
+                val chosenRole = Utility.getCourseRole(studyDirection, courseNumber, guild)
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }

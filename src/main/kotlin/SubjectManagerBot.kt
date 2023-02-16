@@ -24,9 +24,9 @@ import Utility.StudyDirection
 import Utility.Categories
 import Utility.getChannel
 import Utility.getCategory
-import Utility.getCourseCategory
 import Utility.normalizeChanelName
 import Utility.sendMessageAndDeferReply
+import net.dv8tion.jda.api.entities.Role
 
 class SubjectManagerBot : ListenerAdapter() {
 
@@ -37,28 +37,33 @@ class SubjectManagerBot : ListenerAdapter() {
         logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
         val guild = event.guild
-        val channelCreation = getChannel(
+        val subjectCreationChannel = getChannel(
             Channels.SUBJECT_CREATION,
             getCategory(Categories.SUBJECT_MANAGEMENT, guild)
         )
 
-        clearChannel(channelCreation)
+        clearChannel(subjectCreationChannel)
 
-        val channelListMention = "Ознакомиться с полным списком курсов " +
-                "Вы можете тут: " +
-                getChannel(Channels.SUBJECT_LIST,
-                    getCategory(Categories.SUBJECT_MANAGEMENT, guild)).asMention
+        val channelListMention = "Ознакомиться с полным списком уже созданных курсов Вы можете тут: " +
+                getChannel(
+                    Channels.SUBJECT_LIST,
+                    getCategory(Categories.SUBJECT_MANAGEMENT, guild)
+                ).asMention
 
-        channelCreation.sendMessage(
-            "Этот чат предназначен для создания каналов для учебных курсов."
+        subjectCreationChannel.sendMessage(
+            "Этот чат предназначен для создания каналов для учебных курсов. $channelListMention"
         ).queue()
-        channelCreation.sendMessage(channelListMention).setActionRow(createButton).queue()
+        subjectCreationChannel.sendMessage(
+            "Для создания учебного курса нажмите на кнопку ниже. \n" +
+                    "В форме введите название предмета (к нему автоматически будет приписан текущий учебный год), " +
+                    "семестр проведения курса (можно оставить пустым) и номера курсов для каждого направления, " +
+                    "для которых Ваш учебный курс является обязательным (тоже можно оставить пустыми)."
+        ).setActionRow(createButton).queue()
 
         val channelJoining = getChannel(
             Channels.SUBJECT_JOINING,
             getCategory(Categories.SUBJECT_MANAGEMENT, guild)
         )
-
         clearChannel(channelJoining)
 
         channelJoining.sendMessage(channelListMention).setActionRow(joinButton).queue()
@@ -80,9 +85,12 @@ class SubjectManagerBot : ListenerAdapter() {
             event.user.asTag
         )
 
-        val allStudyDirectionActionRows = enumValues<StudyDirection>().map { studyDirection -> ActionRow.of(
+        val courseNumberSuggestions = listOf("1, 2, 3, 4", "2", "1, 4", "3", "3", "3", "3", "3", "3")
+
+        val allStudyDirectionActionRows = enumValues<StudyDirection>().mapIndexed { index, studyDirection -> ActionRow.of(
                 TextInput.create(studyDirection.name, studyDirection.label, TextInputStyle.SHORT)
-                    .setPlaceholder("Номера курсов, для которых предмет обязательный, или оставьте пустым")
+                    .setPlaceholder(courseNumberSuggestions[index])
+                    .setRequired(false)
                     .build()
             )
         }
@@ -92,22 +100,32 @@ class SubjectManagerBot : ListenerAdapter() {
                 "Название предмета",
                 TextInputStyle.SHORT
             ).setRequiredRange(1, 100)
-            .setPlaceholder("Теоретическая информатика (практика)") //TODO("
+            .setPlaceholder("Теоретическая информатика (практика)")
             .build()
+        )
+
+        val semesterNumberRow = ActionRow.of(
+            TextInput.create("semesterNumber",
+                "Номер семестра проведения",
+                TextInputStyle.SHORT
+            ).setRequiredRange(0, 1)
+                .setRequired(false)
+                .build()
         )
 
         when (event.componentId) {
             "channelCreation" -> {
-                val compulsorySubjectCreation = Modal.create(
-                    "subjectCreation",
+                val subjectCreation = Modal.create(
+                    "channelCreation",
                     "Создание учебного курса"
                 ).addActionRows(subjectNameActionRow)
+                    .addActionRows(semesterNumberRow)
                     .addActionRows(allStudyDirectionActionRows).build()
 
-                event.replyModal(compulsorySubjectCreation).queue()
+                event.replyModal(subjectCreation).queue()
             }
             "channelJoining" -> {
-                val subjectJoin = Modal.create("subjectJoining",
+                val subjectJoin = Modal.create("channelJoining",
                     "Присоединение к учебному курсу")
                     .addActionRows(subjectNameActionRow)
                     .build()
@@ -162,7 +180,7 @@ class SubjectManagerBot : ListenerAdapter() {
             }
         )
 
-        fun createSubjectChannel(category: Category) {
+        fun createSubjectChannel(category: Category, roles: List<Role>) {
             if (category.textChannels.map { it.name }.contains(subjectName)) {
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Канал с таким именем уже существует. " +
@@ -182,8 +200,11 @@ class SubjectManagerBot : ListenerAdapter() {
         }
 
         val subjectsCategory = getCategory(Categories.SUBJECTS, guild)
+
+        //считать данные из формы про обязательные курсы
+
         when(event.modalId) {
-            "channelCreation" -> createSubjectChannel(subjectsCategory)
+            "channelCreation" -> createSubjectChannel(subjectsCategory, emptyList())
             "channelJoining" -> {
                 val channel = subjectsCategory.textChannels.find { it.name == subjectName } ?: let {
                     event.deferReply(true).queue()

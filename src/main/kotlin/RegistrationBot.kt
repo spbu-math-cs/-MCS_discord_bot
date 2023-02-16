@@ -276,7 +276,7 @@ class RegistrationBot : ListenerAdapter() {
                     return@onModalInteraction
                 }
 
-                val chosenRole = Utility.getCourseRole(studyDirection, courseNumber, guild)
+                val chosenRole = getRole(studyDirection, courseNumber, guild)
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }

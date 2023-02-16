@@ -24,6 +24,7 @@ import Utility.StudyDirection
 import Utility.Categories
 import Utility.getChannel
 import Utility.getCategory
+import Utility.getRole
 import Utility.normalizeChanelName
 import Utility.sendMessageAndDeferReply
 import net.dv8tion.jda.api.entities.Role
@@ -187,12 +188,22 @@ class SubjectManagerBot : ListenerAdapter() {
                         "Присоединитесь к нему вместо создания.").setEphemeral(true).complete()
                 return
             }
-            category.createTextChannel(subjectName).addMemberPermissionOverride(
-                member.idLong, mutableListOf(
-                    Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MANAGE_CHANNEL
-                ),
-                null
-            ).queue()
+
+            val studentPermissions = mutableListOf(Permission.VIEW_CHANNEL, Permission.CREATE_INSTANT_INVITE, Permission.MESSAGE_SEND,
+                Permission.MESSAGE_ADD_REACTION, Permission.CREATE_PUBLIC_THREADS, Permission.MESSAGE_SEND_IN_THREADS,
+                Permission.CREATE_PRIVATE_THREADS, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_ATTACH_FILES,
+                Permission.MESSAGE_EXT_EMOJI, Permission.MESSAGE_EXT_STICKER, Permission.MESSAGE_MENTION_EVERYONE,
+                Permission.MESSAGE_HISTORY, Permission.USE_APPLICATION_COMMANDS )
+
+            val powerfulRights = listOf(Permission.MANAGE_CHANNEL, Permission.MANAGE_PERMISSIONS, Permission.MESSAGE_MANAGE, Permission.MANAGE_WEBHOOKS, Permission.KICK_MEMBERS)
+
+            val channel = category.createTextChannel(subjectName).addMemberPermissionOverride(
+                member.idLong, studentPermissions + powerfulRights,
+                listOf(Permission.MANAGE_THREADS)
+            )
+
+            roles.forEach { channel.addRolePermissionOverride(it.idLong, studentPermissions, powerfulRights) }
+
 
             event.deferReply(true).queue()
             event.hook.sendMessage("Учебный курс $subjectName успешно создан!")
@@ -201,10 +212,19 @@ class SubjectManagerBot : ListenerAdapter() {
 
         val subjectsCategory = getCategory(Categories.SUBJECTS, guild)
 
-        //считать данные из формы про обязательные курсы
+        fun parseCourseNumbers(givenString: String?): List<Int> {
+            return givenString?.filter { it.isDigit() && it < '5' }?.map { it.digitToInt() }?.distinct() ?: emptyList()
+        }
 
         when(event.modalId) {
-            "channelCreation" -> createSubjectChannel(subjectsCategory, emptyList())
+            "channelCreation" -> {
+                val requiredCourseNumbers = enumValues<StudyDirection>()
+                    .associateWith { directionName -> parseCourseNumbers(event.getValue(directionName.name)?.asString) }
+                val roles = requiredCourseNumbers.toList()
+                    .flatMap { mapEntry -> mapEntry.second.map { Pair(mapEntry.first,it) } }
+                    .map { getRole(it.first, it.second ,guild) }
+                createSubjectChannel(subjectsCategory, roles)
+            }
             "channelJoining" -> {
                 val channel = subjectsCategory.textChannels.find { it.name == subjectName } ?: let {
                     event.deferReply(true).queue()

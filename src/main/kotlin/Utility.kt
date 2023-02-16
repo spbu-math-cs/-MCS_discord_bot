@@ -29,15 +29,6 @@ object Utility: ListenerAdapter() {
         }
     }
 
-    fun getRole(roleEnum: GuildRole, guild: Guild) : Role {
-        return guild.getRolesByName(roleEnum.label, false).firstOrNull()
-            ?: let {
-                globalLogger.error(RED + "ALARM!!! Role '" + roleEnum.label + "' was not found! " +
-                        "Fix this immediately, or everything will fall down!" + RESET)
-                throw Exception()
-            }
-    }
-
     private fun getNumberedCourseName(studyDirection: StudyDirection, courseNumber: Int) : String {
         val yearOfAcceptance = LocalDateTime.now().year - courseNumber
         val isFirstHalfOfTheYear = (LocalDateTime.now().month < Month.JULY).toInt()
@@ -45,11 +36,20 @@ object Utility: ListenerAdapter() {
                 "${yearOfAcceptance + 1 - isFirstHalfOfTheYear}"
     }
 
-    fun getCourseRole(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Role {
+    fun getRole(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Role {
         return guild.getRolesByName(getNumberedCourseName(studyDirection, courseNumber), false).firstOrNull()
             ?: let {
                 globalLogger.error(RED + "ALARM!!! Role '${getNumberedCourseName(studyDirection, courseNumber)}' " +
                         "was not found! Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
+    }
+
+    fun getRole(roleEnum: GuildRole, guild: Guild) : Role {
+        return guild.getRolesByName(roleEnum.label, false).firstOrNull()
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Role '" + roleEnum.label + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!" + RESET)
                 throw Exception()
             }
     }

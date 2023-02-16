@@ -39,11 +39,11 @@ class RegistrationBot : ListenerAdapter() {
     private lateinit var professorRole: Role
     private lateinit var professorConfirmationRole: Role
 
-    private val nameTextInput = TextInput.create("name", "Name", TextInputStyle.SHORT)
+    private val nameTextInput = TextInput.create("name", "Имя", TextInputStyle.SHORT)
         .setRequiredRange(1, 15)
         .setPlaceholder("Иван")
         .build()
-    private val surnameTextInput = TextInput.create("surname", "Surname", TextInputStyle.SHORT)
+    private val surnameTextInput = TextInput.create("surname", "Фамилия", TextInputStyle.SHORT)
         .setRequiredRange(1, 15)
         .setPlaceholder("Иванов")
         .build()
@@ -55,7 +55,10 @@ class RegistrationBot : ListenerAdapter() {
         professorRole = getRole(GuildRole.PROFESSOR, guild)
         professorConfirmationRole = getRole(GuildRole.PROFESSOR_CONFIRMATION, guild)
 
-        val channel = getChannel(Channels.REGISTRATION, getCategory(Categories.REGISTRATION, guild))
+        val channel = getChannel(
+            Channels.REGISTRATION,
+            getCategory(Categories.REGISTRATION, guild)
+        )
 
         clearChannel(channel)
 
@@ -69,7 +72,10 @@ class RegistrationBot : ListenerAdapter() {
     override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
         logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
-        event.guild.addRoleToMember(event.member, getRole(GuildRole.REGISTRATION, event.guild)).queue()
+        event.guild.addRoleToMember(
+            event.member,
+            getRole(GuildRole.REGISTRATION, event.guild)
+        ).queue()
 
         logFunctionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name)
     }
@@ -120,7 +126,8 @@ class RegistrationBot : ListenerAdapter() {
                     event, "Wrong message format.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error("Some troubles with confirmation message in ${Throwable().stackTrace[0].methodName} " +
+                globalLogger.error("Some troubles with confirmation message " +
+                        "in ${Throwable().stackTrace[0].methodName} " +
                         "at ${this.javaClass.name} (member was not found in embed)")
                 return@acceptOrDeny
             }
@@ -135,8 +142,8 @@ class RegistrationBot : ListenerAdapter() {
                 ).queue()
 
                 sendMessageAndDeferReply(
-                    event, "Accepted successfully!\n" +
-                            "Member ${registeredMember.asMention} is professor now."
+                    event, "Запрос принят!\n" +
+                            "Пользователь ${registeredMember.asMention} получил роль преподавателя."
                 )
             } else {
                 guild.modifyMemberRoles(
@@ -146,41 +153,47 @@ class RegistrationBot : ListenerAdapter() {
                 ).queue()
 
                 sendMessageAndDeferReply(
-                    event, "Denied successfully!\n" +
-                            "Member ${registeredMember.asMention} is pushed back into registration.\n" +
-                            "You can ban or kick him/her, if he/she continues doing this."
+                    event, "Запрос отклонён!\n" +
+                            "Пользователь ${registeredMember.asMention} обратно направлен на регистрацию.\n" +
+                            "Вы можете забанить или прогнать его/её, если он/она продалжает посылать запросы."
                 )
             }
         }
 
         when (event.componentId) {
             "student" -> {
-                val courseNumber = TextInput.create("courseNumber", "courseNumber", TextInputStyle.SHORT)
-                    .setRequiredRange(1, 1)
-                    .setPlaceholder("1")
-                    .build()
+                val courseNumber = TextInput.create(
+                    "courseNumber",
+                    "Номер курса",
+                    TextInputStyle.SHORT
+                ).setRequiredRange(1, 1).setPlaceholder("1").build()
 
-                val directionName = TextInput.create("directionName", "directionName", TextInputStyle.SHORT)
-                    .setRequiredRange(1, 3)
+                val directionName = TextInput.create(
+                    "directionName",
+                    "Название направления",
+                    TextInputStyle.SHORT
+                ).setRequiredRange(1, 3)
                     .setPlaceholder("М, НОД или СП (в любом регистре)")
                     .build()
 
-                val studentRegModal = Modal.create("student profile", "Setting student profile")
-                    .addActionRows(
-                        ActionRow.of(surnameTextInput),
-                        ActionRow.of(nameTextInput),
-                        ActionRow.of(directionName),
-                        ActionRow.of(courseNumber)
-                    )
-                    .build()
+                val studentRegModal = Modal.create(
+                    "student profile",
+                    "Настрока профиля студента"
+                ).addActionRows(
+                    ActionRow.of(surnameTextInput),
+                    ActionRow.of(nameTextInput),
+                    ActionRow.of(directionName),
+                    ActionRow.of(courseNumber)
+                ).build()
 
                 event.replyModal(studentRegModal).complete()
             }
 
             "professor" -> {
-                val professorRegModal = Modal.create("professor profile", "Setting professor profile")
-                    .addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput))
-                    .build()
+                val professorRegModal = Modal.create(
+                    "professor profile",
+                    "Настройка профиля преподавателя"
+                ).addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput)).build()
 
                 event.replyModal(professorRegModal).complete()
             }
@@ -201,10 +214,10 @@ class RegistrationBot : ListenerAdapter() {
     private fun createConfirmationMessage(member: Member, name: String, surname: String): MessageEmbed {
         val messageForConfirmation = EmbedBuilder()
         messageForConfirmation.setDescription(member.user.asTag)
-        messageForConfirmation.setTitle("Professor role confirmation")
-        messageForConfirmation.addField("Discord profile", member.asMention, false)
-        messageForConfirmation.addField("Specified name", name, false)
-        messageForConfirmation.addField("Specified surname", surname, false)
+        messageForConfirmation.setTitle("Подтверждение роли преподавателя")
+        messageForConfirmation.addField("Discord профиль", member.asMention, false)
+        messageForConfirmation.addField("Указанное имя", name, false)
+        messageForConfirmation.addField("Указанная фамилия", surname, false)
         messageForConfirmation.setColor(Color.CYAN)
 
         return messageForConfirmation.build()
@@ -245,9 +258,9 @@ class RegistrationBot : ListenerAdapter() {
                 if (courseNumber !in 1..4) {
                     event.deferReply(true).queue()
                     event.hook.sendMessage(
-                        "Hi, you have entered wrong course number.\n " +
-                                "It should be a number in range 1..4.\n" +
-                                "Try again, please, or contact administration for help."
+                        "Вы ввели некорректный номер курса.\n " +
+                                "Это должно быть число в диапазоне 1..4.\n" +
+                                "Попробуйте, пожалуйста, ещё раз или свяжитесь с администрацией для помощи."
                     ).setEphemeral(true).complete()
                     return
                 }
@@ -256,14 +269,12 @@ class RegistrationBot : ListenerAdapter() {
                     ?: let {
                     event.deferReply(true).queue()
                     event.hook.sendMessage(
-                        "Hi, you have entered wrong study direction.\n " +
-                                "It should be one of СП, НОД, М.\n" +
-                                "Try again, please, or contact administration for help."
+                        "Вы ввели некорректное название направления.\n " +
+                                "Оно должно быть одним из перечисленных: СП, НОД или М.\n" +
+                                "Попробуйте, пожалуйста, ещё раз или свяжитесь с администрацией для помощи."
                     ).setEphemeral(true).complete()
                     return@onModalInteraction
                 }
-
-
 
                 val chosenRole = Utility.getCourseRole(studyDirection, courseNumber, guild)
 
@@ -272,7 +283,7 @@ class RegistrationBot : ListenerAdapter() {
                 guild.modifyMemberRoles(member, listOf(chosenRole), listOf(registrationRole)).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Hi, $surname $name!\n You have been successfully registered!")
+                event.hook.sendMessage("Вы успешно зарегистрированы, как $surname $name!")
                     .setEphemeral(true).complete()
             }
 
@@ -289,13 +300,13 @@ class RegistrationBot : ListenerAdapter() {
                 channelConfirmation.sendMessageEmbeds(
                     createConfirmationMessage(member, name, surname)
                 ).setActionRow(
-                    Button.primary("accept", "Accept"),
-                    Button.primary("deny", "Deny")
+                    Button.primary("accept", "Принять"),
+                    Button.primary("deny", "Отклонить")
                 ).queue()
                 event.deferReply(true).queue()
                 event.hook.sendMessage(
-                    "Hello, $surname $name!\n Wait until " +
-                            "administration confirm your profile."
+                    "Первый этап регистрации заверешён. Теперь остолось дождаться, " +
+                            "пока администрация подтвердит Ваш профиль."
                 ).setEphemeral(true).complete()
             }
         }

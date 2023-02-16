@@ -168,8 +168,8 @@ class RegistrationBot : ListenerAdapter() {
                     TextInputStyle.SHORT
                 ).setRequiredRange(1, 1).setPlaceholder("1").build()
 
-                val directionName = TextInput.create(
-                    "directionName",
+                val studyDirection = TextInput.create(
+                    "studyDirection",
                     "Название направления",
                     TextInputStyle.SHORT
                 ).setRequiredRange(1, 3)
@@ -182,7 +182,7 @@ class RegistrationBot : ListenerAdapter() {
                 ).addActionRows(
                     ActionRow.of(surnameTextInput),
                     ActionRow.of(nameTextInput),
-                    ActionRow.of(directionName),
+                    ActionRow.of(studyDirection),
                     ActionRow.of(courseNumber)
                 ).build()
 
@@ -265,7 +265,7 @@ class RegistrationBot : ListenerAdapter() {
                     return
                 }
 
-                val studyDirection = StudyDirection[event.getValue("courseNumber")?.asString?.trim()?.uppercase() ?: ""]
+                val studyDirection = StudyDirection[event.getValue("studyDirection")?.asString?.trim()?.uppercase() ?: ""]
                     ?: let {
                     event.deferReply(true).queue()
                     event.hook.sendMessage(

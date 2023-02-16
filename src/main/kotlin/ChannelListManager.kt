@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class ChannelListManager : ListenerAdapter() {
     private fun getSubjectList(guild: Guild): String {
-        val subjectList: StringBuilder = StringBuilder("Спецкурсы:\n")
+        val subjectList: StringBuilder = StringBuilder("Список курсов:\n")
         val category = getCategory(Categories.SUBJECTS, guild)
         category.textChannels.forEach { subjectList.append("\t\t${it.asMention}\n") }
         return subjectList.toString()

@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import Utility.Channels
 import Utility.StudyDirection
 import Utility.Categories
+import Utility.expandChannelName
 import Utility.getChannel
 import Utility.getCategory
 import Utility.getRole
@@ -181,7 +182,7 @@ class SubjectManagerBot : ListenerAdapter() {
             }
         )
 
-        fun createSubjectChannel(category: Category, roles: List<Role>) {
+        fun createSubjectChannel(category: Category, semesterNumber: Int? ,roles: List<Role>) {
             if (category.textChannels.map { it.name }.contains(subjectName)) {
                 event.deferReply(true).queue()
                 event.hook.sendMessage("Канал с таким именем уже существует. " +
@@ -189,21 +190,28 @@ class SubjectManagerBot : ListenerAdapter() {
                 return
             }
 
-            val studentPermissions = mutableListOf(Permission.VIEW_CHANNEL, Permission.CREATE_INSTANT_INVITE, Permission.MESSAGE_SEND,
+            val studentPermissions = mutableListOf(
+                Permission.VIEW_CHANNEL, Permission.CREATE_INSTANT_INVITE, Permission.MESSAGE_SEND,
                 Permission.MESSAGE_ADD_REACTION, Permission.CREATE_PUBLIC_THREADS, Permission.MESSAGE_SEND_IN_THREADS,
                 Permission.CREATE_PRIVATE_THREADS, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_ATTACH_FILES,
                 Permission.MESSAGE_EXT_EMOJI, Permission.MESSAGE_EXT_STICKER, Permission.MESSAGE_MENTION_EVERYONE,
-                Permission.MESSAGE_HISTORY, Permission.USE_APPLICATION_COMMANDS )
-
-            val powerfulRights = listOf(Permission.MANAGE_CHANNEL, Permission.MANAGE_PERMISSIONS, Permission.MESSAGE_MANAGE, Permission.MANAGE_WEBHOOKS, Permission.KICK_MEMBERS)
-
-            val channel = category.createTextChannel(subjectName).addMemberPermissionOverride(
-                member.idLong, studentPermissions + powerfulRights,
-                listOf(Permission.MANAGE_THREADS)
+                Permission.MESSAGE_HISTORY, Permission.USE_APPLICATION_COMMANDS
             )
 
-            roles.forEach { channel.addRolePermissionOverride(it.idLong, studentPermissions, powerfulRights) }
+            val powerfulRights = listOf(
+                Permission.MANAGE_CHANNEL, Permission.MANAGE_PERMISSIONS, Permission.MESSAGE_MANAGE,
+                Permission.MANAGE_WEBHOOKS, Permission.KICK_MEMBERS
+            )
 
+            val channelAction = category.createTextChannel(expandChannelName(subjectName, semesterNumber))
+                .addMemberPermissionOverride(
+                    member.idLong, studentPermissions + powerfulRights,
+                    listOf(Permission.MANAGE_THREADS)
+                )
+
+            roles.forEach { channelAction.addRolePermissionOverride(it.idLong, studentPermissions, powerfulRights) }
+
+            channelAction.queue()
 
             event.deferReply(true).queue()
             event.hook.sendMessage("Учебный курс $subjectName успешно создан!")
@@ -223,7 +231,11 @@ class SubjectManagerBot : ListenerAdapter() {
                 val roles = requiredCourseNumbers.toList()
                     .flatMap { mapEntry -> mapEntry.second.map { Pair(mapEntry.first,it) } }
                     .map { getRole(it.first, it.second ,guild) }
-                createSubjectChannel(subjectsCategory, roles)
+                createSubjectChannel(
+                    subjectsCategory,
+                    event.getValue("semesterNumber")?.asString?.toIntOrNull()?.coerceIn(1, 2),
+                    roles
+                )
             }
             "channelJoining" -> {
                 val channel = subjectsCategory.textChannels.find { it.name == subjectName } ?: let {

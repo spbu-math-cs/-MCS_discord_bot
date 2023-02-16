@@ -29,11 +29,13 @@ object Utility: ListenerAdapter() {
         }
     }
 
+    fun getCurrentStudyYear(year: Int) =
+        year - (LocalDateTime.now().month < Month.JULY).toInt()
+
     private fun getNumberedCourseName(studyDirection: StudyDirection, courseNumber: Int) : String {
-        val yearOfAcceptance = LocalDateTime.now().year - courseNumber
-        val isFirstHalfOfTheYear = (LocalDateTime.now().month < Month.JULY).toInt()
-        return "${studyDirection.label} ${yearOfAcceptance - isFirstHalfOfTheYear}-" +
-                "${yearOfAcceptance + 1 - isFirstHalfOfTheYear}"
+        val studyYearOfAcceptance = getCurrentStudyYear(LocalDateTime.now().year - courseNumber)
+        return "${studyDirection.label} $studyYearOfAcceptance-" +
+                "${studyYearOfAcceptance + 1}"
     }
 
     fun getRole(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Role {
@@ -70,21 +72,10 @@ object Utility: ListenerAdapter() {
             }
     }
 
-    fun getCourseCategory(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Category {
-        return guild.getCategoriesByName(getNumberedCourseName(studyDirection, courseNumber), false).firstOrNull()
-            ?: let {
-                globalLogger.error(RED + "ALARM!!! Category '${getNumberedCourseName(studyDirection, courseNumber)}' " +
-                        "was not found! Fix this immediately, or everything will fall down!" + RESET)
-                throw Exception()
-            }
-    }
-
     enum class Channels(val label: String) {
         REGISTRATION("регистрация"),
         PROFESSOR_CONFIRMATION("подтверждение_роли"),
         SUBJECT_LIST("список_курсов"),
-        INFO("стойка_информации_и_полезные_ссылки"),
-        CHAT("болталка"),
         SUBJECT_JOINING("присоединение_к_курсам"),
         SUBJECT_CREATION("создание_курсов"),
         INVITE_GENERATOR("генератор_ссылок")
@@ -122,9 +113,18 @@ object Utility: ListenerAdapter() {
         channel.sendMessage(message).queue()
     }
 
-    fun normalizeChanelName(name: String): String {
-        return name.replace('-', '_').replace(' ', '_').trim()
-    }
+    fun normalizeChanelName(name: String) =
+        name.replace('-', '_').replace(' ', '_').trim()
+
+    fun expandChannelName(subjectName: String, semesterNumber: Int?) =
+        normalizeChanelName(subjectName) + '_' +
+                getCurrentStudyYear(LocalDateTime.now().year) + '_' +
+                getCurrentStudyYear(LocalDateTime.now().year + 1) +
+                when (semesterNumber) {
+                    1 -> "_осень"
+                    2 -> "_весна"
+                    else -> ""
+                }
 
     fun sendMessageAndDeferReply(event: Event, text: String) {
         when (event) {

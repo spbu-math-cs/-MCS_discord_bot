@@ -29,61 +29,47 @@ import Utility.normalizeChanelName
 import Utility.sendMessageAndDeferReply
 
 class SubjectManagerBot : ListenerAdapter() {
-    private fun sendCreateAndJoin(): List<Button> {
-        val buttons: MutableList<Button> = mutableListOf()
-        buttons.add(Button.primary("createCompulsorySubject", "Создать обязательный курс"))
-        buttons.add(Button.primary("createSpecialSubject", "Создать спецкурс"))
-        buttons.add(Button.primary("professor_join", "Присоединиться"))
-        return buttons
-    }
+
+    private val createButton = Button.primary("channelCreation", "Создать учебный курс")
+    private val joinButton = Button.primary("channelJoining", "Присоединиться к учебному курсу")
 
     override fun onGuildReady(event: GuildReadyEvent) {
         logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
         val guild = event.guild
-        val channelInteraction = getChannel(
-            Channels.SUBJECT_INTERACTION,
-            getCategory(Categories.COURSE_MANAGEMENT, guild)
+        val channelCreation = getChannel(
+            Channels.SUBJECT_CREATION,
+            getCategory(Categories.SUBJECT_MANAGEMENT, guild)
         )
 
-        clearChannel(channelInteraction)
+        clearChannel(channelCreation)
 
-        channelInteraction.sendMessage(
-            "Этот чат предназначен для создания каналов для курсов " +
-                    "и присоединения к уже существующим курсам."
-        ).queue()
-        channelInteraction.sendMessage(
-            "Ознакомиться с полным списком курсов " +
-                    "Вы можете в соседнем канале: " +
-                    getChannel(Channels.SUBJECT_LIST,
-                        getCategory(Categories.COURSE_MANAGEMENT, guild)
-                    ).asMention
-        ).queue()
-        channelInteraction.sendMessage("Вы хотите:").setActionRow(sendCreateAndJoin()).queue()
+        val channelListMention = "Ознакомиться с полным списком курсов " +
+                "Вы можете тут: " +
+                getChannel(Channels.SUBJECT_LIST,
+                    getCategory(Categories.SUBJECT_MANAGEMENT, guild)).asMention
 
-        val channelSpecialSubjectJoin = getChannel(
-            Channels.SUBJECT_JOIN,
-            getCategory(Categories.SPECIAL_SUBJECTS, guild)
+        channelCreation.sendMessage(
+            "Этот чат предназначен для создания каналов для учебных курсов."
+        ).queue()
+        channelCreation.sendMessage(channelListMention).setActionRow(createButton).queue()
+
+        val channelJoining = getChannel(
+            Channels.SUBJECT_JOINING,
+            getCategory(Categories.SUBJECT_MANAGEMENT, guild)
         )
 
-        clearChannel(channelSpecialSubjectJoin)
+        clearChannel(channelJoining)
 
-        channelSpecialSubjectJoin.sendMessage(
-            "Этот чат предназначен для присоединения к спецкурсам. Их список вы можете посмотерть тут:" +
-                    getChannel(Channels.SPECIAL_SUBJECT_LIST,
-                        getCategory(Categories.SPECIAL_SUBJECTS, guild)
-                    ).asMention
-        ).setActionRow(Button.primary("student_join", "Присоединиться")).queue()
+        channelJoining.sendMessage(channelListMention).setActionRow(joinButton).queue()
 
         logFunctionLeave(Throwable().stackTrace[0].methodName,this.javaClass.name)
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
         if (event.componentId !in listOf(
-                "createCompulsorySubject",
-                "createSpecialSubject",
-                "professor_join",
-                "student_join"
+                "subjectCreation",
+                "subjectJoining"
             )
         ) return
 
@@ -94,43 +80,35 @@ class SubjectManagerBot : ListenerAdapter() {
             event.user.asTag
         )
 
-        val courseNumber = TextInput.create("courseNumber", "Course number", TextInputStyle.SHORT)
-            .setRequiredRange(1, 1)
-            .setPlaceholder("1")
-            .build()
+        val allStudyDirectionActionRows = enumValues<StudyDirection>().map { studyDirection -> ActionRow.of(
+                TextInput.create(studyDirection.name, studyDirection.name, TextInputStyle.SHORT)
+                    .setPlaceholder("Номера курсов, для которых предмет обязательный, или оставьте пустым")
+                    .build()
+            )
+        }
 
-        val subjectName = TextInput.create("subjectName", "Subject name", TextInputStyle.SHORT)
-            .setRequiredRange(1, 100)
+        val subjectNameActionRow = ActionRow.of(
+            TextInput.create("Название предмета",
+                "Название предмета",
+                TextInputStyle.SHORT
+            ).setRequiredRange(1, 100)
             .setPlaceholder("Теоретическая информатика (практика)")
             .build()
+        )
 
         when (event.componentId) {
-            "createCompulsorySubject" -> {
+            "channelCreation" -> {
                 val compulsorySubjectCreation = Modal.create(
-                    "compulsory subject create",
-                    "Compulsory subject creation modal"
-                ).addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName)).build()
+                    "Создание учебного курса",
+                    "Создание учебного курса"
+                ).addActionRows(allStudyDirectionActionRows).build()
 
                 event.replyModal(compulsorySubjectCreation).queue()
             }
-            "createSpecialSubject" -> {
-                val specialSubjectCreation = Modal.create(
-                    "special subject create",
-                    "Special subject creation modal"
-                ).addActionRows(ActionRow.of(subjectName)).build()
-
-                event.replyModal(specialSubjectCreation).queue()
-            }
-            "professor_join" -> {
-                val subjectJoin = Modal.create("professor subject join", "Professor subject join modal")
-                    .addActionRows(ActionRow.of(courseNumber), ActionRow.of(subjectName))
-                    .build()
-
-                event.replyModal(subjectJoin).queue()
-            }
-            "student_join" -> {
-                val subjectJoin = Modal.create("student subject join", "Student subject join modal")
-                    .addActionRows(ActionRow.of(subjectName))
+            "channelJoining" -> {
+                val subjectJoin = Modal.create("Присоединение к учебному курсу",
+                    "Присоединение к учебному курсу")
+                    .addActionRows(subjectNameActionRow)
                     .build()
 
                 event.replyModal(subjectJoin).queue()
@@ -216,7 +194,7 @@ class SubjectManagerBot : ListenerAdapter() {
                     event.hook.sendMessage("Special subject with entered name is not exists.\n" +
                             "Check it and try again. You can find list of all subjects here:" +
                             getChannel(Channels.SUBJECT_LIST,
-                                getCategory(Categories.COURSE_MANAGEMENT, guild)
+                                getCategory(Categories.SUBJECT_MANAGEMENT, guild)
                             ).asMention
                     ).setEphemeral(true).complete()
                     return@onModalInteraction

@@ -113,7 +113,7 @@ object Utility: ListenerAdapter() {
         clearChannel(channel)
 //        if (messages.isEmpty())
 //            return
-        messages.forEach { channel.sendMessage(it).queue() }
+        messages.forEach { channel.sendMessage(it).complete() }
 //        val sendMessagesAction : MessageCreateAction = channel.sendMessage(messages.first())
 //        messages.drop(1).forEach { sendMessagesAction.and(channel.sendMessage(it)) }
 //        sendMessagesAction.queue()

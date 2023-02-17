@@ -75,6 +75,7 @@ object Utility: ListenerAdapter() {
     enum class Channels(val label: String) {
         REGISTRATION("регистрация"),
         PROFESSOR_CONFIRMATION("подтверждение_роли"),
+        CLEANING("удаление_старых_каналов"),
         SUBJECT_LIST("список_курсов"),
         SUBJECT_JOINING("присоединение_к_курсам"),
         SUBJECT_CREATION("создание_курсов"),
@@ -108,9 +109,14 @@ object Utility: ListenerAdapter() {
         }
     }
 
-    fun clearAndSendMessage(channel: TextChannel, message: String) {
+    fun clearAndSendMessages(channel: TextChannel, messages: List<String>) {
         clearChannel(channel)
-        channel.sendMessage(message).queue()
+//        if (messages.isEmpty())
+//            return
+        messages.forEach { channel.sendMessage(it).queue() }
+//        val sendMessagesAction : MessageCreateAction = channel.sendMessage(messages.first())
+//        messages.drop(1).forEach { sendMessagesAction.and(channel.sendMessage(it)) }
+//        sendMessagesAction.queue()
     }
 
     fun normalizeChanelName(name: String) =

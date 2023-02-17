@@ -30,7 +30,7 @@ import Utility.normalizeChanelName
 import Utility.sendMessageAndDeferReply
 import net.dv8tion.jda.api.entities.Role
 
-class SubjectManagerBot : ListenerAdapter() {
+class SubjectManagementListener : ListenerAdapter() {
 
     private val createButton = Button.primary("channelCreation", "Создать учебный курс")
     private val joinButton = Button.primary("channelJoining", "Присоединиться к учебному курсу")

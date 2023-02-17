@@ -34,7 +34,7 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
 import java.awt.Color
 
-class RegistrationBot : ListenerAdapter() {
+class RegistrationListener : ListenerAdapter() {
     private lateinit var registrationRole: Role
     private lateinit var professorRole: Role
     private lateinit var professorConfirmationRole: Role

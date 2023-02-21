@@ -161,7 +161,7 @@ class RegistrationListener : ListenerAdapter() {
 
                 sendMessageAndDeferReply(
                     event, "Запрос отклонён!\n" +
-                            "Пользователь ${registeredMember.asMention} обратно направлен на регистрацию.\n" +
+                            "Пользователь ${registeredMember.asMention} направлен обратно на регистрацию.\n" +
                             "Вы можете забанить или прогнать его/её, если он/она продалжает посылать запросы."
                 )
             }
@@ -290,7 +290,7 @@ class RegistrationListener : ListenerAdapter() {
                 guild.modifyMemberRoles(member, listOf(chosenRole), listOf(registrationRole)).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Вы успешно зарегистрированы, как $surname $name!")
+                event.hook.sendMessage("Вы успешно зарегистрированы как $surname $name!")
                     .setEphemeral(true).complete()
             }
 
@@ -312,7 +312,7 @@ class RegistrationListener : ListenerAdapter() {
                 ).queue()
                 event.deferReply(true).queue()
                 event.hook.sendMessage(
-                    "Первый этап регистрации заверешён. Теперь остолось дождаться, " +
+                    "Первый этап регистрации заверешён. Теперь осталось дождаться, " +
                             "пока администрация подтвердит Ваш профиль."
                 ).setEphemeral(true).complete()
             }

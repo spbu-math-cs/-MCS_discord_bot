@@ -9,17 +9,6 @@ class TestListener : ListenerAdapter() {
             // Run the 'ping' command
             val userTag = event.user.asTag
             event.reply("Welcome to the server, **$userTag**!").queue()
-        } else if (command == "roles") {
-            // run the 'roles' command
-            event.deferReply().queue()
-            var response = ""
-            for (role in event.guild!!.roles) {
-                response += """
-                ${role.asMention}
-                
-                """.trimIndent()
-            }
-            event.hook.sendMessage(response).queue()
         }
     }
 

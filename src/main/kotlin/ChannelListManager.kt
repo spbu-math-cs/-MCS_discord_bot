@@ -12,6 +12,10 @@ import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class ChannelListManager : ListenerAdapter() {
+    private val starterMessage = "В этом канале в сообщениях ниже поддерживается корректный список курсов. " +
+            "С помощью него, вы можете скопировать название курса, для присоединения к нему " +
+            "или проверить существование курса, который Вы планируете создать."
+
     private fun getSubjectList(guild: Guild): List<String> {
         val category = getCategory(Categories.SUBJECTS, guild)
 
@@ -23,6 +27,11 @@ class ChannelListManager : ListenerAdapter() {
     private lateinit var subjectListChannel: TextChannel
     private lateinit var guild: Guild
 
+    private val resetSubjectList = { clearAndSendMessages(
+        subjectListChannel,
+        listOf(starterMessage) + getSubjectList(guild)
+    ) }
+
     override fun onGuildReady(event: GuildReadyEvent) {
         guild = event.guild
         guild.channels.filterIsInstance<TextChannel>().forEach {
@@ -30,7 +39,7 @@ class ChannelListManager : ListenerAdapter() {
         }
 
         subjectListChannel = getChannel(Channels.SUBJECT_LIST, getCategory(Categories.SUBJECT_MANAGEMENT, guild))
-        clearAndSendMessages(subjectListChannel, getSubjectList(guild))
+        resetSubjectList()
     }
 
     private fun checkAndCorrectChannelName(channel: TextChannel): Boolean {
@@ -47,12 +56,10 @@ class ChannelListManager : ListenerAdapter() {
             return
         if (!checkAndCorrectChannelName(channel))
             channel.delete().complete() //TODO(Добавить оповещение пользователю)
-        clearAndSendMessages(subjectListChannel, getSubjectList(guild))
+        resetSubjectList()
     }
 
-    override fun onChannelDelete(event: ChannelDeleteEvent) {
-        clearAndSendMessages(subjectListChannel, getSubjectList(guild))
-    }
+    override fun onChannelDelete(event: ChannelDeleteEvent) = resetSubjectList()
 
     override fun onChannelUpdateName(event: ChannelUpdateNameEvent) {
         val channel = event.channel
@@ -60,6 +67,6 @@ class ChannelListManager : ListenerAdapter() {
             return
         if (!checkAndCorrectChannelName(channel))
             event.oldValue?.let { channel.manager.setName(it).complete() } //TODO(Добавить оповещение пользователю)
-        clearAndSendMessages(subjectListChannel, getSubjectList(guild))
+        resetSubjectList()
     }
 }

@@ -48,6 +48,12 @@ class RegistrationListener : ListenerAdapter() {
         .setPlaceholder("Иванов")
         .build()
 
+    private val welcomeMessage = "Перед тем, как пользоваться всем функционалом, Вам необходимо зарегистрироваться. " +
+            "Укажите, являетесь преподавателем или студентом, нажав на соответствующую кнопку. " +
+            "Далее укажите ваши данные: имя, фамилию и курс. Пожалуйста, вводите достоверную информацию, " +
+            "так всем будет проще. Если Вы регистрируетесь, как преподаватель, " +
+            "то необходимо будет дождаться подтверждения Вашего профиля от Администрации."
+
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
 
@@ -66,6 +72,7 @@ class RegistrationListener : ListenerAdapter() {
             "Рады приветствовать вас на официальном " +
                     "сервере факультета Математики и Компьютерных Наук!"
         ).queue()
+        channel.sendMessage(welcomeMessage)
         channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).complete()
     }
 

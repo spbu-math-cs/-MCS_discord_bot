@@ -1,26 +1,53 @@
 import GlobalLogger.RED
 import GlobalLogger.RESET
 import GlobalLogger.globalLogger
-import net.dv8tion.jda.api.entities.Category
-import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.MessageHistory
-import net.dv8tion.jda.api.entities.Role
-import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.Event
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import java.time.LocalDateTime
+import java.time.Month
+
 
 object Utility: ListenerAdapter() {
-    enum class Roles(val label: String) {
+    fun Boolean.toInt() = if (this) 1 else 0
+
+    enum class GuildRole(val label: String) {
         REGISTRATION("Регистрация"),
         PROFESSOR("Преподаватель"),
         PROFESSOR_CONFIRMATION("Ожидает подтверждения"),
     }
 
-    val courses: List<String> = listOf("СП 1", "СП 2", "СП 3", "СП 4")
+    enum class StudyDirection(val label: String) {
+        MATHEMATICS("М"),
+        DATA_SCIENCE("НОД"),
+        MODERN_PROGRAMMING("СП");
+        companion object {
+            private val map = values().associateBy { it.label }
+            operator fun get(label: String) = map[label]
+        }
+    }
 
-    fun getRole(roleEnum: Roles, guild: Guild) : Role {
+    fun getCurrentStudyYear(year: Int) =
+        year - (LocalDateTime.now().month < Month.AUGUST).toInt()
+
+    private fun getNumberedCourseName(studyDirection: StudyDirection, courseNumber: Int) : String {
+        val studyYearOfAcceptance = getCurrentStudyYear(LocalDateTime.now().year - courseNumber)
+        return "${studyDirection.label} $studyYearOfAcceptance-" +
+                "${studyYearOfAcceptance + 1}"
+    }
+
+    fun getRole(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Role {
+        return guild.getRolesByName(getNumberedCourseName(studyDirection, courseNumber), false).firstOrNull()
+            ?: let {
+                globalLogger.error(RED + "ALARM!!! Role '${getNumberedCourseName(studyDirection, courseNumber)}' " +
+                        "was not found! Fix this immediately, or everything will fall down!" + RESET)
+                throw Exception()
+            }
+    }
+
+    fun getRole(roleEnum: GuildRole, guild: Guild) : Role {
         return guild.getRolesByName(roleEnum.label, false).firstOrNull()
             ?: let {
                 globalLogger.error(RED + "ALARM!!! Role '" + roleEnum.label + "' was not found! " +
@@ -29,36 +56,18 @@ object Utility: ListenerAdapter() {
             }
     }
 
-    fun getCourseRole(courseNumber: Int, guild: Guild) : Role {
-        return guild.getRolesByName(courses[courseNumber - 1], false).firstOrNull()
-            ?: let {
-                globalLogger.error(RED + "ALARM!!! Role 'СП " + courseNumber + "' was not found! " +
-                        "Fix this immediately, or everything will fall down!" + RESET)
-                throw Exception()
-            }
-    }
-
     enum class Categories(val label: String){
         REGISTRATION("Регистрация"),
         ADMINISTRATION("Администрация"),
-        COURSE_MANAGEMENT("Управление курсами"),
-        SPECIAL_SUBJECTS("Спецкурсы")
+        SUBJECT_MANAGEMENT("Управление курсами"),
+        SUBJECTS("Учебные курсы"),
     }
 
     fun getCategory(categoryEnum: Categories, guild: Guild): Category {
         return guild.getCategoriesByName(categoryEnum.label, false).firstOrNull()
             ?: let {
                 globalLogger.error(RED + "ALARM!!! Category '" + categoryEnum.label + "' was not found! " +
-                            "Fix this immediately, or everything will fall down!" + RESET)
-                throw Exception()
-            }
-    }
-
-    fun getCourseCategory(courseNumber: Int, guild: Guild) : Category {
-        return guild.getCategoriesByName(courses[courseNumber - 1], false).firstOrNull()
-            ?: let {
-                globalLogger.error(RED + "ALARM!!! Category 'СП " + courseNumber + "' was not found! " +
-                            "Fix this immediately, or everything will fall down!" + RESET)
+                        "Fix this immediately, or everything will fall down!" + RESET)
                 throw Exception()
             }
     }
@@ -66,20 +75,18 @@ object Utility: ListenerAdapter() {
     enum class Channels(val label: String) {
         REGISTRATION("регистрация"),
         PROFESSOR_CONFIRMATION("подтверждение_роли"),
+        CLEANING("удаление_старых_каналов"),
         SUBJECT_LIST("список_курсов"),
-        SUBJECT_INTERACTION("взаимодействие_с_курсами"),
-        INFO("стойка_информации_и_полезные_ссылки"),
-        CHAT("болталка"),
-        SPECIAL_SUBJECT_JOIN("присоединение_к_спецкурсам"),
-        SPECIAL_SUBJECT_LIST("список_спецкурсов"),
+        SUBJECT_JOINING("присоединение_к_курсам"),
+        SUBJECT_CREATION("создание_курсов"),
         INVITE_GENERATOR("генератор_ссылок")
     }
 
     fun getChannel(channel: Channels, category: Category): TextChannel {
         return category.textChannels.find { it.name == channel.label }
             ?: let {
-                globalLogger.error(RED + "ALARM!!! Channel '" + channel.label + "' was not found! " +
-                            "Fix this immediately, or everything will fall down!" + RESET)
+                globalLogger.error(RED + "ALARM!!! Channel" + channel.label + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!" + RESET)
                 throw Exception()
             }
     }
@@ -95,21 +102,30 @@ object Utility: ListenerAdapter() {
                 0 -> deletingFlag = false
                 1 -> {
                     deletingFlag = false
-                    messages[0].delete().complete()
+                    messages[0]?.delete()?.complete()
                 }
                 else -> channel.deleteMessages(messages).queue()
             }
         }
     }
 
-    fun clearAndSendMessage(channel: TextChannel, message: String) {
+    fun clearAndSendMessages(channel: TextChannel, messages: List<String>) {
         clearChannel(channel)
-        channel.sendMessage(message).queue()
+        messages.forEach { channel.sendMessage(it).complete() }
     }
 
-    fun normalizeChanelName(name: String): String {
-        return name.replace('-', '_').replace(' ', '_').trim()
-    }
+    fun normalizeChanelName(name: String) =
+        name.replace('-', '_').replace(' ', '_').trim()
+
+    fun expandChannelName(subjectName: String, semesterNumber: Int?) =
+        normalizeChanelName(subjectName) + '_' +
+                getCurrentStudyYear(LocalDateTime.now().year) + '_' +
+                getCurrentStudyYear(LocalDateTime.now().year + 1) +
+                when (semesterNumber) {
+                    1 -> "_осень"
+                    2 -> "_весна"
+                    else -> ""
+                }
 
     fun sendMessageAndDeferReply(event: Event, text: String) {
         when (event) {

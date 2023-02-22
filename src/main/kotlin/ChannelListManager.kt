@@ -1,10 +1,8 @@
 import Utility.Channels
 import Utility.Categories
-import Utility.clearAndSendMessage
+import Utility.clearAndSendMessages
 import Utility.getChannel
-import Utility.courses
 import Utility.getCategory
-import Utility.getCourseCategory
 import Utility.normalizeChanelName
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
@@ -14,32 +12,25 @@ import net.dv8tion.jda.api.events.guild.GuildReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class ChannelListManager : ListenerAdapter() {
-    private fun getSpecialSubjectsList(guild: Guild): String {
-        val subjectList: StringBuilder = StringBuilder("Спецкурсы:\n")
-        val category = getCategory(Categories.SPECIAL_SUBJECTS, guild)
-        category.textChannels.filter {
-            it.name != Channels.SPECIAL_SUBJECT_LIST.label && it.name != Channels.SPECIAL_SUBJECT_JOIN.label
-        }.forEach { subjectList.append("\t\t${it.asMention}\n") }
-        return subjectList.toString()
-    }
+    private val starterMessage = "В этом канале в сообщениях ниже поддерживается корректный список курсов. " +
+            "С помощью него, вы можете скопировать название курса, для присоединения к нему " +
+            "или проверить существование курса, который Вы планируете создать."
 
-    private fun getChannelList(guild: Guild): String {
-        val channelList: StringBuilder = StringBuilder("")
-        courses.forEachIndexed { i, label ->
-            channelList.append("$label:\n")
-            val category = getCourseCategory(i + 1, guild)
-            category.textChannels.filter {
-                it.name != Channels.CHAT.label && it.name != Channels.INFO.label
-            }.forEach { channelList.append("\t\t${it.asMention}\n") }
+    private fun getSubjectList(guild: Guild): List<String> {
+        val category = getCategory(Categories.SUBJECTS, guild)
+
+        return listOf("Список курсов:") + category.textChannels.windowed(20, 20, true) {
+                window -> window.joinToString("", "```", "```") { "\t${it.name}\n" }
         }
-
-        channelList.append(getSpecialSubjectsList(guild))
-        return channelList.toString()
     }
 
     private lateinit var subjectListChannel: TextChannel
-    private lateinit var specialSubjectListChannel: TextChannel
     private lateinit var guild: Guild
+
+    private val resetSubjectList = { clearAndSendMessages(
+        subjectListChannel,
+        listOf(starterMessage) + getSubjectList(guild)
+    ) }
 
     override fun onGuildReady(event: GuildReadyEvent) {
         guild = event.guild
@@ -47,12 +38,8 @@ class ChannelListManager : ListenerAdapter() {
             it.manager.setName(normalizeChanelName(it.name)).queue()
         }
 
-        subjectListChannel = getChannel(Channels.SUBJECT_LIST, getCategory(Categories.COURSE_MANAGEMENT, guild))
-        clearAndSendMessage(subjectListChannel, getChannelList(guild))
-
-        specialSubjectListChannel =
-            getChannel(Channels.SPECIAL_SUBJECT_LIST, getCategory(Categories.SPECIAL_SUBJECTS, guild))
-        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
+        subjectListChannel = getChannel(Channels.SUBJECT_LIST, getCategory(Categories.SUBJECT_MANAGEMENT, guild))
+        resetSubjectList()
     }
 
     private fun checkAndCorrectChannelName(channel: TextChannel): Boolean {
@@ -68,23 +55,18 @@ class ChannelListManager : ListenerAdapter() {
         if (channel !is TextChannel)
             return
         if (!checkAndCorrectChannelName(channel))
-            channel.delete().complete()
-        clearAndSendMessage(subjectListChannel, getChannelList(guild))
-        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
+            channel.delete().complete() //TODO(Добавить оповещение пользователю)
+        resetSubjectList()
     }
 
-    override fun onChannelDelete(event: ChannelDeleteEvent) {
-        clearAndSendMessage(subjectListChannel, getChannelList(guild))
-        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
-    }
+    override fun onChannelDelete(event: ChannelDeleteEvent) = resetSubjectList()
 
     override fun onChannelUpdateName(event: ChannelUpdateNameEvent) {
         val channel = event.channel
         if (channel !is TextChannel)
             return
         if (!checkAndCorrectChannelName(channel))
-            event.oldValue?.let { channel.manager.setName(it).complete() }
-        clearAndSendMessage(subjectListChannel, getChannelList(guild))
-        clearAndSendMessage(specialSubjectListChannel, getSpecialSubjectsList(guild))
+            event.oldValue?.let { channel.manager.setName(it).complete() } //TODO(Добавить оповещение пользователю)
+        resetSubjectList()
     }
 }

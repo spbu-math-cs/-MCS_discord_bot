@@ -21,7 +21,8 @@ import GlobalLogger.logFunctionLeave
 import GlobalLogger.logModalInteractionEnter
 import GlobalLogger.logModalInteractionLeave
 import Utility.clearChannel
-import Utility.Roles
+import Utility.StudyDirection
+import Utility.GuildRole
 import Utility.Channels
 import Utility.Categories
 import Utility.getCategory
@@ -33,42 +34,55 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
 import java.awt.Color
 
-class RegistrationBot : ListenerAdapter() {
+class RegistrationListener : ListenerAdapter() {
     private lateinit var registrationRole: Role
     private lateinit var professorRole: Role
     private lateinit var professorConfirmationRole: Role
 
-    private val nameTextInput = TextInput.create("name", "Name", TextInputStyle.SHORT)
+    private val nameTextInput = TextInput.create("name", "Имя", TextInputStyle.SHORT)
         .setRequiredRange(1, 15)
         .setPlaceholder("Иван")
         .build()
-    private val surnameTextInput = TextInput.create("surname", "Surname", TextInputStyle.SHORT)
+    private val surnameTextInput = TextInput.create("surname", "Фамилия", TextInputStyle.SHORT)
         .setRequiredRange(1, 15)
         .setPlaceholder("Иванов")
         .build()
 
+    private val welcomeMessage = "Перед тем, как пользоваться всем функционалом, Вам необходимо зарегистрироваться. " +
+            "Укажите, являетесь преподавателем или студентом, нажав на соответствующую кнопку. " +
+            "Далее укажите ваши данные: имя, фамилию и курс. Пожалуйста, вводите достоверную информацию, " +
+            "так всем будет проще. Если Вы регистрируетесь, как преподаватель, " +
+            "то необходимо будет дождаться подтверждения Вашего профиля от Администрации."
+
     override fun onGuildReady(event: GuildReadyEvent) {
         val guild = event.guild
 
-        registrationRole = getRole(Roles.REGISTRATION, guild)
-        professorRole = getRole(Roles.PROFESSOR, guild)
-        professorConfirmationRole = getRole(Roles.PROFESSOR_CONFIRMATION, guild)
+        registrationRole = getRole(GuildRole.REGISTRATION, guild)
+        professorRole = getRole(GuildRole.PROFESSOR, guild)
+        professorConfirmationRole = getRole(GuildRole.PROFESSOR_CONFIRMATION, guild)
 
-        val channel = getChannel(Channels.REGISTRATION, getCategory(Categories.REGISTRATION, guild))
+        val channel = getChannel(
+            Channels.REGISTRATION,
+            getCategory(Categories.REGISTRATION, guild)
+        )
 
         clearChannel(channel)
 
         channel.sendMessage(
             "Рады приветствовать вас на официальном " +
-                    "сервере программы Современное Программирование!"
+                    "сервере факультета Математики и Компьютерных Наук!"
         ).queue()
+        channel.sendMessage(welcomeMessage)
         channel.sendMessage("Вы:").setActionRow(sendStudentAndProfessor()).complete()
     }
 
     override fun onGuildMemberJoin(event: GuildMemberJoinEvent) {
         logFunctionEnter(Throwable().stackTrace[0].methodName, this.javaClass.name)
 
-        event.guild.addRoleToMember(event.member, getRole(Roles.REGISTRATION, event.guild)).queue()
+        event.guild.addRoleToMember(
+            event.member,
+            getRole(GuildRole.REGISTRATION, event.guild)
+        ).queue()
 
         logFunctionLeave(Throwable().stackTrace[0].methodName, this.javaClass.name)
     }
@@ -119,7 +133,8 @@ class RegistrationBot : ListenerAdapter() {
                     event, "Wrong message format.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error("Some troubles with confirmation message in ${Throwable().stackTrace[0].methodName} " +
+                globalLogger.error("Some troubles with confirmation message " +
+                        "in ${Throwable().stackTrace[0].methodName} " +
                         "at ${this.javaClass.name} (member was not found in embed)")
                 return@acceptOrDeny
             }
@@ -129,51 +144,63 @@ class RegistrationBot : ListenerAdapter() {
             if (accept) {
                 guild.modifyMemberRoles(
                     registeredMember,
-                    listOf(getRole(Roles.PROFESSOR, guild)),
-                    listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
+                    listOf(getRole(GuildRole.PROFESSOR, guild)),
+                    listOf(getRole(GuildRole.PROFESSOR_CONFIRMATION, guild))
                 ).queue()
 
                 sendMessageAndDeferReply(
-                    event, "Accepted successfully!\n" +
-                            "Member ${registeredMember.asMention} is professor now."
+                    event, "Запрос принят!\n" +
+                            "Пользователь ${registeredMember.asMention} получил роль преподавателя."
                 )
             } else {
                 guild.modifyMemberRoles(
                     registeredMember,
-                    listOf(getRole(Roles.REGISTRATION, guild)),
-                    listOf(getRole(Roles.PROFESSOR_CONFIRMATION, guild))
+                    listOf(getRole(GuildRole.REGISTRATION, guild)),
+                    listOf(getRole(GuildRole.PROFESSOR_CONFIRMATION, guild))
                 ).queue()
 
                 sendMessageAndDeferReply(
-                    event, "Denied successfully!\n" +
-                            "Member ${registeredMember.asMention} is pushed back into registration.\n" +
-                            "You can ban or kick him/her, if he/she continues doing this."
+                    event, "Запрос отклонён!\n" +
+                            "Пользователь ${registeredMember.asMention} направлен обратно на регистрацию.\n" +
+                            "Вы можете забанить или прогнать его/её, если он/она продалжает посылать запросы."
                 )
             }
         }
 
         when (event.componentId) {
             "student" -> {
-                val courseNumber = TextInput.create("courseNumber", "courseNumber", TextInputStyle.SHORT)
-                    .setRequiredRange(1, 1)
-                    .setPlaceholder("1")
+                val courseNumber = TextInput.create(
+                    "courseNumber",
+                    "Номер курса",
+                    TextInputStyle.SHORT
+                ).setRequiredRange(1, 1).setPlaceholder("1").build()
+
+                val studyDirection = TextInput.create(
+                    "studyDirection",
+                    "Название направления",
+                    TextInputStyle.SHORT
+                ).setRequiredRange(1, 3)
+                    .setPlaceholder("М, НОД или СП (в любом регистре)")
                     .build()
 
-                val studentRegModal = Modal.create("student profile", "Setting student profile")
-                    .addActionRows(
-                        ActionRow.of(surnameTextInput),
-                        ActionRow.of(nameTextInput),
-                        ActionRow.of(courseNumber)
-                    )
-                    .build()
+                val studentRegModal = Modal.create(
+                    "student profile",
+                    "Настрока профиля студента"
+                ).addActionRows(
+                    ActionRow.of(surnameTextInput),
+                    ActionRow.of(nameTextInput),
+                    ActionRow.of(studyDirection),
+                    ActionRow.of(courseNumber)
+                ).build()
 
                 event.replyModal(studentRegModal).complete()
             }
 
             "professor" -> {
-                val professorRegModal = Modal.create("professor profile", "Setting professor profile")
-                    .addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput))
-                    .build()
+                val professorRegModal = Modal.create(
+                    "professor profile",
+                    "Настройка профиля преподавателя"
+                ).addActionRows(ActionRow.of(surnameTextInput), ActionRow.of(nameTextInput)).build()
 
                 event.replyModal(professorRegModal).complete()
             }
@@ -194,10 +221,10 @@ class RegistrationBot : ListenerAdapter() {
     private fun createConfirmationMessage(member: Member, name: String, surname: String): MessageEmbed {
         val messageForConfirmation = EmbedBuilder()
         messageForConfirmation.setDescription(member.user.asTag)
-        messageForConfirmation.setTitle("Professor role confirmation")
-        messageForConfirmation.addField("Discord profile", member.asMention, false)
-        messageForConfirmation.addField("Specified name", name, false)
-        messageForConfirmation.addField("Specified surname", surname, false)
+        messageForConfirmation.setTitle("Подтверждение роли преподавателя")
+        messageForConfirmation.addField("Discord профиль", member.asMention, false)
+        messageForConfirmation.addField("Указанное имя", name, false)
+        messageForConfirmation.addField("Указанная фамилия", surname, false)
         messageForConfirmation.setColor(Color.CYAN)
 
         return messageForConfirmation.build()
@@ -234,25 +261,36 @@ class RegistrationBot : ListenerAdapter() {
         when (event.modalId) {
 
             "student profile" -> {
-                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull()
-                if (courseNumber == null || courseNumber !in 1..4) {
+                val courseNumber = event.getValue("courseNumber")?.asString?.trim()?.toIntOrNull() ?: 0
+                if (courseNumber !in 1..4) {
                     event.deferReply(true).queue()
                     event.hook.sendMessage(
-                        "Hi, you have entered wrong course number.\n " +
-                                "It should be a number in range 1..4.\n" +
-                                "Try again, please, or contact administration for help."
+                        "Вы ввели некорректный номер курса.\n " +
+                                "Это должно быть число в диапазоне 1..4.\n" +
+                                "Попробуйте, пожалуйста, ещё раз или свяжитесь с администрацией для помощи."
                     ).setEphemeral(true).complete()
                     return
                 }
 
-                val chosenRole = Utility.getCourseRole(courseNumber, guild)
+                val studyDirection = StudyDirection[event.getValue("studyDirection")?.asString?.trim()?.uppercase() ?: ""]
+                    ?: let {
+                    event.deferReply(true).queue()
+                    event.hook.sendMessage(
+                        "Вы ввели некорректное название направления.\n " +
+                                "Оно должно быть одним из перечисленных: СП, НОД или М.\n" +
+                                "Попробуйте, пожалуйста, ещё раз или свяжитесь с администрацией для помощи."
+                    ).setEphemeral(true).complete()
+                    return@onModalInteraction
+                }
+
+                val chosenRole = getRole(studyDirection, courseNumber, guild)
 
                 member.modifyNickname("$surname $name".trim()).queue()
                 member.roles.forEach { guild.removeRoleFromMember(member, it) }
                 guild.modifyMemberRoles(member, listOf(chosenRole), listOf(registrationRole)).queue()
 
                 event.deferReply(true).queue()
-                event.hook.sendMessage("Hi, $surname $name!\n You have been successfully registered!")
+                event.hook.sendMessage("Вы успешно зарегистрированы как $surname $name!")
                     .setEphemeral(true).complete()
             }
 
@@ -269,13 +307,13 @@ class RegistrationBot : ListenerAdapter() {
                 channelConfirmation.sendMessageEmbeds(
                     createConfirmationMessage(member, name, surname)
                 ).setActionRow(
-                    Button.primary("accept", "Accept"),
-                    Button.primary("deny", "Deny")
+                    Button.primary("accept", "Принять"),
+                    Button.primary("deny", "Отклонить")
                 ).queue()
                 event.deferReply(true).queue()
                 event.hook.sendMessage(
-                    "Hello, $surname $name!\n Wait until " +
-                            "administration confirm your profile."
+                    "Первый этап регистрации заверешён. Теперь осталось дождаться, " +
+                            "пока администрация подтвердит Ваш профиль."
                 ).setEphemeral(true).complete()
             }
         }

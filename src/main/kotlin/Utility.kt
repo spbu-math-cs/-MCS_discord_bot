@@ -33,7 +33,7 @@ object Utility: ListenerAdapter() {
         year - (LocalDateTime.now().month < Month.AUGUST).toInt()
 
     private fun getNumberedCourseName(studyDirection: StudyDirection, courseNumber: Int) : String {
-        val studyYearOfAcceptance = getCurrentStudyYear(LocalDateTime.now().year - courseNumber)
+        val studyYearOfAcceptance = getCurrentStudyYear(LocalDateTime.now().year - courseNumber + 1)
         return "${studyDirection.label} $studyYearOfAcceptance-" +
                 "${studyYearOfAcceptance + 1}"
     }

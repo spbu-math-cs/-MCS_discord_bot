@@ -1,5 +1,3 @@
-import GlobalLogger.RED
-import GlobalLogger.RESET
 import GlobalLogger.globalLogger
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.Event
@@ -41,8 +39,8 @@ object Utility: ListenerAdapter() {
     fun getRole(studyDirection: StudyDirection, courseNumber: Int, guild: Guild) : Role {
         return guild.getRolesByName(getNumberedCourseName(studyDirection, courseNumber), false).firstOrNull()
             ?: let {
-                globalLogger.error(RED + "ALARM!!! Role '${getNumberedCourseName(studyDirection, courseNumber)}' " +
-                        "was not found! Fix this immediately, or everything will fall down!" + RESET)
+                globalLogger.error("ALARM!!! Role '${getNumberedCourseName(studyDirection, courseNumber)}' " +
+                        "was not found! Fix this immediately, or everything will fall down!")
                 throw Exception()
             }
     }
@@ -50,8 +48,8 @@ object Utility: ListenerAdapter() {
     fun getRole(roleEnum: GuildRole, guild: Guild) : Role {
         return guild.getRolesByName(roleEnum.label, false).firstOrNull()
             ?: let {
-                globalLogger.error(RED + "ALARM!!! Role '" + roleEnum.label + "' was not found! " +
-                        "Fix this immediately, or everything will fall down!" + RESET)
+                globalLogger.error("ALARM!!! Role '" + roleEnum.label + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!")
                 throw Exception()
             }
     }
@@ -66,8 +64,8 @@ object Utility: ListenerAdapter() {
     fun getCategory(categoryEnum: Categories, guild: Guild): Category {
         return guild.getCategoriesByName(categoryEnum.label, false).firstOrNull()
             ?: let {
-                globalLogger.error(RED + "ALARM!!! Category '" + categoryEnum.label + "' was not found! " +
-                        "Fix this immediately, or everything will fall down!" + RESET)
+                globalLogger.error("ALARM!!! Category '" + categoryEnum.label + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!")
                 throw Exception()
             }
     }
@@ -85,8 +83,8 @@ object Utility: ListenerAdapter() {
     fun getChannel(channel: Channels, category: Category): TextChannel {
         return category.textChannels.find { it.name == channel.label }
             ?: let {
-                globalLogger.error(RED + "ALARM!!! Channel" + channel.label + "' was not found! " +
-                        "Fix this immediately, or everything will fall down!" + RESET)
+                globalLogger.error("ALARM!!! Channel" + channel.label + "' was not found! " +
+                        "Fix this immediately, or everything will fall down!")
                 throw Exception()
             }
     }

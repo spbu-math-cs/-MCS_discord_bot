@@ -1,7 +1,3 @@
-import GlobalLogger.GREEN
-import GlobalLogger.RED
-import GlobalLogger.RESET
-import GlobalLogger.YELLOW
 import GlobalLogger.globalLogger
 import GlobalLogger.logButtonInteractionEnter
 import GlobalLogger.logButtonInteractionLeave
@@ -112,9 +108,9 @@ class RegistrationListener : ListenerAdapter() {
                             "there is no guild in processing event.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error(RED + "Guild was not found in event " +
+                globalLogger.error("Guild was not found in event " +
                         "in ${Throwable().stackTrace[0].methodName} " +
-                        "at ${this.javaClass.name}" + RESET)
+                        "at ${this.javaClass.name}")
                 return@acceptOrDeny
             }
             val embed = event.message.embeds.firstOrNull() ?: let {
@@ -122,9 +118,9 @@ class RegistrationListener : ListenerAdapter() {
                     event, "Wrong message format.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error(RED + "Some troubles with confirmation message + " +
+                globalLogger.error("Some troubles with confirmation message + " +
                         "in ${Throwable().stackTrace[0].methodName} " +
-                        "at ${this.javaClass.name} (embed was not found)" + RESET)
+                        "at ${this.javaClass.name} (embed was not found)")
                 return@acceptOrDeny
             }
 
@@ -247,9 +243,9 @@ class RegistrationListener : ListenerAdapter() {
         val name = event.getValue("name")?.asString
 
         if (name == null || surname == null) {
-            globalLogger.error("$GREEN Some troubles with entered name/surname " +
-                    "in $YELLOW ${Throwable().stackTrace[0].methodName} $GREEN " +
-                    "at $YELLOW ${this.javaClass.name} $RESET")
+            globalLogger.error("Some troubles with entered name/surname " +
+                    "in ${Throwable().stackTrace[0].methodName} " +
+                    "at ${this.javaClass.name}")
             event.deferReply(true).queue()
             event.hook.sendMessage(
                 "Wrong registration processing. There is no name/surname in event.\n" +

@@ -1,5 +1,3 @@
-import GlobalLogger.RED
-import GlobalLogger.RESET
 import GlobalLogger.globalLogger
 import GlobalLogger.logButtonInteractionEnter
 import GlobalLogger.logButtonInteractionLeave
@@ -163,8 +161,8 @@ class SubjectManagementListener : ListenerAdapter() {
                         "there is no member in processing event.\n " +
                         "Please, tell dummy programmers about that, and they will definitely fix that."
             )
-            globalLogger.error(RED + "Member was not found in event " +
-                    "in ${Throwable().stackTrace[0].methodName} at ${this.javaClass.name}" + RESET)
+            globalLogger.error("Member was not found in event " +
+                    "in ${Throwable().stackTrace[0].methodName} at ${this.javaClass.name}")
             return@onModalInteraction
         }
 
@@ -176,8 +174,8 @@ class SubjectManagementListener : ListenerAdapter() {
                             "there is no subjectName in processing event.\n " +
                             "Please, tell dummy programmers about that, and they will definitely fix that."
                 )
-                globalLogger.error(RED + "SubjectName was not found in event " +
-                        "in ${Throwable().stackTrace[0].methodName} at ${this.javaClass.name}" + RESET)
+                globalLogger.error("SubjectName was not found in event " +
+                        "in ${Throwable().stackTrace[0].methodName} at ${this.javaClass.name}")
                 return@onModalInteraction
             }
         )

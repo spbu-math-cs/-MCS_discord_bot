@@ -6,11 +6,6 @@ import java.io.File
 import java.io.PrintStream
 
 object GlobalLogger{
-    const val RESET: String = "\u001B[0m"
-    const val RED: String = "\u001B[31m"
-    const val GREEN: String = "\u001B[32m"
-    const val YELLOW: String = "\u001B[33m"
-
     val globalLogger = SimpleLogger(
         "Global", Level.TRACE,
         true,
@@ -24,11 +19,11 @@ object GlobalLogger{
     )
 
     fun logFunctionEnter(functionName: String, className: String) {
-        globalLogger.debug(GREEN + "Entered " + YELLOW + functionName + GREEN +  " at " + YELLOW + className + RESET)
+        globalLogger.debug("Entered $functionName at $className")
     }
 
     fun logFunctionLeave(functionName: String, className: String) {
-        globalLogger.debug(GREEN + "Left " + YELLOW + functionName + GREEN +  " at " + YELLOW + className + RESET)
+        globalLogger.debug("Left $functionName at $className")
     }
 
     private fun logInteraction(
@@ -39,10 +34,9 @@ object GlobalLogger{
         id: String,
         memberTag: String
     ) {
-        globalLogger.debug(GREEN + typeOfLog + ' ' + YELLOW + functionName + ' '
-                + GREEN + whatLog + " : '" + YELLOW + id + GREEN +
-                "' at " + YELLOW + className +
-                GREEN + " by '" + YELLOW + memberTag + GREEN + "'" + RESET)
+        globalLogger.debug(typeOfLog + ' ' + functionName + ' '
+                 + whatLog + " : '" + id + "' at " + className +
+                " by '" + memberTag + "'")
     }
 
     fun logButtonInteractionEnter(functionName: String, className: String, id: String, memberTag: String) =
